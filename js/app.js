@@ -216,7 +216,7 @@ function setupTabs() {
 }
 
 /**
- * Set up mobile sidebar toggles
+ * Set up mobile sidebar toggles with swipe-to-close gesture
  */
 function setupMobileSidebars() {
   const filtersToggle = document.getElementById('filtersToggle');
@@ -291,6 +291,78 @@ function setupMobileSidebars() {
       }
     }, 150);
   });
+
+  // Swipe-to-close gesture for sidebars
+  setupSwipeToClose(filtersSidebar, 'left', closeAllSidebars);
+  setupSwipeToClose(universeSidebar, 'right', closeAllSidebars);
+}
+
+/**
+ * Set up swipe-to-close gesture for a sidebar
+ * @param {HTMLElement} sidebar - The sidebar element
+ * @param {string} direction - 'left' or 'right' (direction to swipe to close)
+ * @param {Function} onClose - Callback when closed
+ */
+function setupSwipeToClose(sidebar, direction, onClose) {
+  if (!sidebar) return;
+
+  const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
+  const VELOCITY_THRESHOLD = 0.3; // Minimum velocity for quick swipe
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let isSwiping = false;
+
+  sidebar.addEventListener('touchstart', (e) => {
+    // Only track if sidebar is open
+    if (!sidebar.classList.contains('open')) return;
+
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    isSwiping = false;
+  }, { passive: true });
+
+  sidebar.addEventListener('touchmove', (e) => {
+    if (!sidebar.classList.contains('open')) return;
+
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const deltaX = touchX - touchStartX;
+    const deltaY = touchY - touchStartY;
+
+    // Only consider horizontal swipes (more horizontal than vertical movement)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      isSwiping = true;
+
+      // Check if swiping in the correct direction to close
+      if ((direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0)) {
+        // Prevent scrolling while swiping
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
+
+  sidebar.addEventListener('touchend', (e) => {
+    if (!sidebar.classList.contains('open') || !isSwiping) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const deltaX = touchEndX - touchStartX;
+    const deltaTime = Date.now() - touchStartTime;
+    const velocity = Math.abs(deltaX) / deltaTime;
+
+    // Check if swipe was in the correct direction and met threshold
+    const swipedCorrectDirection = (direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0);
+    const swipedFarEnough = Math.abs(deltaX) >= SWIPE_THRESHOLD;
+    const swipedFastEnough = velocity >= VELOCITY_THRESHOLD;
+
+    if (swipedCorrectDirection && (swipedFarEnough || swipedFastEnough)) {
+      onClose();
+    }
+
+    isSwiping = false;
+  }, { passive: true });
 }
 
 /**
