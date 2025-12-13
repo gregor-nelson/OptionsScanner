@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s /b \"C:\\Users\\gregor\\Downloads\\Dev\\Python\")",
+      "Bash(findstr:*)",
+      "Bash(node --check:*)"
+    ]
+  }
+}

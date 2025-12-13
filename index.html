@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Energy Options Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/volume.css">
+  <link rel="stylesheet" href="css/heatmap3d.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-mark">E</div>
+        <div class="logo-text">Energy <span>Scanner</span></div>
+      </div>
+
+      <div class="header-stats">
+        <div class="header-stat">
+          <div class="header-stat-label">Results</div>
+          <div class="header-stat-value" id="resultCount">0</div>
+        </div>
+        <div class="header-stat">
+          <div class="header-stat-label">Tickers</div>
+          <div class="header-stat-value" id="tickerCount">0</div>
+        </div>
+        <div class="header-stat">
+          <div class="header-stat-label">Avg IV</div>
+          <div class="header-stat-value" id="avgIV">--</div>
+        </div>
+      </div>
+
+      <!-- Settings Dropdown -->
+      <div class="settings-dropdown" id="settingsDropdown">
+        <button class="settings-btn" id="settingsBtn" title="Data & Cache Settings">
+          <i class="ph ph-gear-six"></i>
+        </button>
+        <div class="settings-menu" id="settingsMenu">
+          <div class="settings-section">
+            <div class="settings-section-title">Data & Cache</div>
+            <div class="settings-info">
+              <div class="settings-info-row">
+                <i class="ph ph-clock"></i>
+                <span>Last scan:</span>
+                <span id="cacheLastScan">Never</span>
+              </div>
+              <div class="settings-info-row">
+                <i class="ph ph-database"></i>
+                <span>Cache:</span>
+                <span id="cacheSizeInfo">0 B (0 scans)</span>
+              </div>
+            </div>
+          </div>
+          <div class="settings-divider"></div>
+          <button class="settings-action" id="forceRefreshBtn">
+            <i class="ph ph-arrows-clockwise"></i>
+            <span>Force Refresh</span>
+            <small>Bypass cache and fetch new data</small>
+          </button>
+          <button class="settings-action" id="loadPreviousBtn">
+            <i class="ph ph-folder-open"></i>
+            <span>Load Previous Scan</span>
+            <small>Browse cached scan results</small>
+          </button>
+          <div class="settings-divider"></div>
+          <button class="settings-action danger" id="clearCacheBtn">
+            <i class="ph ph-trash"></i>
+            <span>Clear All Cache</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="scan-status" id="scanStatus">
+        <div class="status-dot"></div>
+        <span>Ready</span>
+      </div>
+
+      <div class="header-info">
+        <span class="data-source">Data: <a href="https://massive.com" target="_blank">Massive.com</a></span>
+      </div>
+    </header>
+
+    <!-- Filters Sidebar -->
+    <aside class="filters-sidebar">
+      <div class="panel-header">
+        <span class="panel-title">Filters</span>
+        <div class="filter-toggles">
+          <button class="filter-toggle active" data-type="calls">Calls</button>
+          <button class="filter-toggle" data-type="puts">Puts</button>
+        </div>
+      </div>
+
+      <div class="filters-content">
+        <!-- Test Ticker -->
+        <div class="filter-group">
+          <label>Test Ticker</label>
+          <input type="text" id="testTicker" placeholder="e.g. XOM" style="text-transform: uppercase;">
+          <small class="hint">Leave empty for all</small>
+        </div>
+
+        <!-- Price Range -->
+        <div class="filter-group">
+          <label>Price Range ($)</label>
+          <div class="input-row">
+            <input type="number" id="priceMin" step="0.01" min="0" placeholder="Min">
+            <span class="separator">-</span>
+            <input type="number" id="priceMax" step="0.01" min="0" placeholder="Max">
+          </div>
+          <small class="hint">Last trade price</small>
+        </div>
+
+        <!-- Expiration Range -->
+        <div class="filter-group">
+          <label>Expiration</label>
+          <div class="date-inputs">
+            <div class="date-row">
+              <span class="date-label">Min</span>
+              <input type="date" id="expMin">
+            </div>
+            <div class="date-row">
+              <span class="date-label">Max</span>
+              <input type="date" id="expMax">
+            </div>
+          </div>
+        </div>
+
+        <!-- Delta Range -->
+        <div class="filter-group">
+          <label>Delta Range</label>
+          <div class="input-row">
+            <input type="number" id="deltaMin" step="0.01" min="0" max="1" placeholder="0.0">
+            <span class="separator">-</span>
+            <input type="number" id="deltaMax" step="0.01" min="0" max="1" placeholder="1.0">
+          </div>
+        </div>
+
+        <!-- Max IV -->
+        <div class="filter-group">
+          <label>Max IV (%)</label>
+          <input type="number" id="ivMax" step="1" min="0" max="500" placeholder="e.g. 50">
+        </div>
+
+        <!-- Min Open Interest -->
+        <div class="filter-group">
+          <label>Min Open Interest</label>
+          <input type="number" id="minOI" step="1" min="0" placeholder="e.g. 100">
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab active" data-tab="heatmap">
+          <i class="ph ph-squares-four tab-icon"></i>
+          <span class="tab-label">Heatmap</span>
+        </button>
+        <button class="tab" data-tab="contracts">
+          <i class="ph ph-table tab-icon"></i>
+          <span class="tab-label">Contracts</span>
+          <span class="tab-badge" id="contractsBadge"></span>
+        </button>
+        <button class="tab" data-tab="volume">
+          <i class="ph ph-chart-bar tab-icon"></i>
+          <span class="tab-label">Vol & OI</span>
+        </button>
+        <button class="tab" data-tab="analysis">
+          <i class="ph ph-chart-line-up tab-icon"></i>
+          <span class="tab-label">Analysis</span>
+        </button>
+        <div class="tab-shortcuts-hint">
+          <span>1</span><span>2</span><span>3</span><span>4</span>
+        </div>
+      </div>
+
+      <!-- Tab Panels -->
+      <div class="tab-panels">
+        <!-- Heatmap Panel -->
+        <div class="tab-panel active" id="panel-heatmap">
+          <!-- Sub-tab Navigation -->
+          <div class="heatmap-view-tabs">
+            <button class="heatmap-view-tab active" data-view="2d" title="2D Heatmap">
+              <i class="ph ph-squares-four"></i>
+              <span class="heatmap-view-label">2D</span>
+            </button>
+            <button class="heatmap-view-tab" data-view="bar3d" title="3D Bar Chart">
+              <i class="ph ph-cube"></i>
+              <span class="heatmap-view-label">3D Bars</span>
+            </button>
+            <button class="heatmap-view-tab" data-view="scatter3d" title="3D Scatter Plot">
+              <i class="ph ph-chart-scatter"></i>
+              <span class="heatmap-view-label">Scatter</span>
+            </button>
+
+            <div class="heatmap-view-separator"></div>
+
+            <!-- 3D-specific controls -->
+            <div class="heatmap-3d-controls" id="heatmap3dControls">
+              <div class="heatmap-3d-control">
+                <label for="industryFilter">Industry</label>
+                <select id="industryFilter">
+                  <option value="all">All Industries</option>
+                  <!-- Options populated dynamically by JS -->
+                </select>
+              </div>
+              <div class="heatmap-3d-control">
+                <label for="colorMetric">Color</label>
+                <select id="colorMetric">
+                  <option value="iv" selected>Avg IV</option>
+                  <option value="price">Avg Price</option>
+                  <option value="count">Count</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <section class="chart-section" id="chartSection" data-view="2d">
+            <!-- Chart Containers -->
+            <div class="heatmap-chart-container">
+              <div id="heatmapContainer"></div>
+              <div id="heatmap3dContainer"></div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="heatmap-loading" id="heatmapLoading">
+              <div class="heatmap-loading-spinner"></div>
+            </div>
+
+            <!-- Overlay Controls (2D only) -->
+            <div class="view-options" id="heatmap2dControls">
+              <button class="view-btn" id="expandAllBtn">
+                <i class="ph ph-arrows-out-simple view-btn-icon"></i>
+                <span class="view-btn-label">Expand All</span>
+              </button>
+              <button class="view-btn" id="collapseAllBtn">
+                <i class="ph ph-arrows-in-simple view-btn-icon"></i>
+                <span class="view-btn-label">Collapse All</span>
+              </button>
+            </div>
+
+            <!-- IV Legend (3D Bar) -->
+            <div class="heatmap-iv-legend" id="heatmapIvLegend">
+              <div class="heatmap-iv-legend-title">Avg IV</div>
+              <div class="heatmap-iv-legend-item">
+                <div class="heatmap-iv-legend-color low"></div>
+                <span class="heatmap-iv-legend-label">&lt; 25% (Low)</span>
+              </div>
+              <div class="heatmap-iv-legend-item">
+                <div class="heatmap-iv-legend-color mid"></div>
+                <span class="heatmap-iv-legend-label">25-40%</span>
+              </div>
+              <div class="heatmap-iv-legend-item">
+                <div class="heatmap-iv-legend-color high"></div>
+                <span class="heatmap-iv-legend-label">&gt; 40% (High)</span>
+              </div>
+            </div>
+
+            <!-- Industry Legend (Scatter) -->
+            <div class="heatmap-scatter-legend" id="heatmapScatterLegend">
+              <div class="heatmap-scatter-legend-title">Industries</div>
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Chart Hints -->
+            <div class="chart-hint-overlay" id="chartHint">
+              <span>Click industry row to expand/collapse - Click ticker cell to view contracts</span>
+            </div>
+
+            <div class="chart-hint-3d" id="chartHint3d">
+              <span><kbd>Drag</kbd> Rotate</span>
+              <span><kbd>Scroll</kbd> Zoom</span>
+              <span><kbd>Click</kbd> Drill down</span>
+            </div>
+          </section>
+        </div>
+
+        <!-- Contracts Panel -->
+        <div class="tab-panel" id="panel-contracts">
+          <section class="results-section">
+            <div class="results-header">
+              <span class="panel-title">Contracts</span>
+              <div class="results-info">
+                <span id="resultsShowing">Showing 0 results</span>
+              </div>
+            </div>
+            <div class="table-container">
+              <table id="resultsTable">
+                <thead>
+                  <tr>
+                    <th class="sortable" data-field="underlying">Ticker</th>
+                    <th>Industry</th>
+                    <th class="sortable" data-field="strike">Strike</th>
+                    <th class="sortable" data-field="expiration">Exp</th>
+                    <th class="sortable" data-field="dte">DTE</th>
+                    <th class="sortable" data-field="bid">Bid</th>
+                    <th class="sortable" data-field="ask">Ask</th>
+                    <th class="sortable" data-field="last">Last</th>
+                    <th class="sortable" data-field="iv">IV</th>
+                    <th class="sortable" data-field="delta">Delta</th>
+                    <th class="sortable" data-field="volume">Vol</th>
+                    <th class="sortable" data-field="openInterest">OI</th>
+                  </tr>
+                </thead>
+                <tbody id="resultsBody">
+                  <tr>
+                    <td colspan="12" class="placeholder">Configure filters and click Scan to search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Volume & OI Panel -->
+        <div class="tab-panel" id="panel-volume">
+          <!-- Summary Stats -->
+          <div class="volume-stats">
+            <div class="volume-stat-card">
+              <span class="volume-stat-label">Total Volume</span>
+              <span class="volume-stat-value" id="volTotalVolume">--</span>
+            </div>
+            <div class="volume-stat-card">
+              <span class="volume-stat-label">Total OI</span>
+              <span class="volume-stat-value" id="volTotalOI">--</span>
+            </div>
+            <div class="volume-stat-card">
+              <span class="volume-stat-label">Avg Ratio</span>
+              <span class="volume-stat-value" id="volAvgRatio">--</span>
+            </div>
+            <div class="volume-stat-card hot">
+              <span class="volume-stat-label">Hot Tickers</span>
+              <span class="volume-stat-value" id="volHotCount">--</span>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="volume-controls">
+            <div class="volume-control-group">
+              <label for="volShowLimit">Show</label>
+              <select id="volShowLimit">
+                <option value="20">Top 20</option>
+                <option value="50" selected>Top 50</option>
+                <option value="100">Top 100</option>
+                <option value="0">All</option>
+              </select>
+            </div>
+            <div class="volume-control-group">
+              <label for="volSortBy">Sort</label>
+              <select id="volSortBy">
+                <option value="ratio" selected>Ratio (High → Low)</option>
+                <option value="totalVolume">Volume (High → Low)</option>
+                <option value="totalOI">Open Interest (High → Low)</option>
+                <option value="ticker">Ticker (A → Z)</option>
+              </select>
+            </div>
+            <div class="volume-control-group">
+              <label for="volThreshold">Hot Threshold</label>
+              <select id="volThreshold">
+                <option value="0.1">0.1x</option>
+                <option value="0.2">0.2x</option>
+                <option value="0.3" selected>0.3x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1.0">1.0x</option>
+                <option value="2.0">2.0x</option>
+              </select>
+            </div>
+            <!-- Industry Legend -->
+            <div class="volume-legend" id="volumeLegend">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="volume-chart-wrapper">
+            <div id="volumeChart" class="volume-chart"></div>
+          </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="tab-panel" id="panel-analysis">
+          <div class="placeholder-content">
+            <i class="ph ph-chart-line-up placeholder-icon"></i>
+            <p>Analysis features coming soon</p>
+            <span class="placeholder-hint">Greeks visualization, IV surface, and more</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Universe Sidebar -->
+    <aside class="universe-sidebar">
+      <div class="panel-header">
+        <span class="panel-title">Universe</span>
+      </div>
+
+      <div class="universe-count">
+        <span id="universeCount">0</span> tickers
+      </div>
+
+      <div class="universe-list" id="universeList">
+        <div class="loading-text">Loading...</div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="key-levels">
+        <div class="key-levels-title">Summary</div>
+        <div class="key-level positive">
+          <span class="key-level-name">Low IV (<30%)</span>
+          <span class="key-level-value" id="lowIVCount">0</span>
+        </div>
+        <div class="key-level neutral">
+          <span class="key-level-name">High OI (>1K)</span>
+          <span class="key-level-value" id="highOICount">0</span>
+        </div>
+        <div class="key-level accent">
+          <span class="key-level-name">Deep ITM</span>
+          <span class="key-level-value" id="deepITMCount">0</span>
+        </div>
+      </div>
+
+      <!-- Industry Breakdown -->
+      <div class="industry-breakdown">
+        <div class="breakdown-title">By Industry</div>
+        <div id="industryBreakdown" class="breakdown-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom Bar -->
+    <footer class="bottom-bar">
+      <div class="action-controls">
+        <button id="scanBtn" class="action-btn primary">
+          <i class="ph ph-play action-btn-icon"></i>
+          <span>Scan</span>
+        </button>
+        <button onclick="exportCSV()" class="action-btn secondary">
+          <i class="ph ph-download-simple action-btn-icon"></i>
+          <span>Export</span>
+        </button>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText">Ready to scan</div>
+      </div>
+
+      <div class="bottom-stats">
+        <div class="bottom-stat">
+          <span class="bottom-stat-label">Contracts</span>
+          <span class="bottom-stat-value" id="bottomResultCount">0</span>
+        </div>
+        <div class="bottom-stat">
+          <span class="bottom-stat-label">Avg Delta</span>
+          <span class="bottom-stat-value" id="avgDelta">--</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Side Panel for Drill-down -->
+    <div id="sidePanel" class="side-panel">
+      <div class="side-panel-header">
+        <h4 id="sidePanelTitle">Contracts</h4>
+        <button id="closeSidePanel" class="close-btn">&times;</button>
+      </div>
+      <div id="sidePanelContent" class="side-panel-content"></div>
+    </div>
+    <div id="sidePanelOverlay" class="side-panel-overlay"></div>
+
+    <!-- Scan Picker Modal -->
+    <div id="scanPickerModal" class="modal">
+      <div class="modal-backdrop" id="scanPickerBackdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="ph ph-folder-open"></i> Previous Scans</h3>
+          <button class="modal-close" id="closeScanPicker">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="scanPickerList" class="scan-picker-list">
+            <!-- Populated by JS -->
+            <div class="scan-picker-empty">
+              <i class="ph ph-folder-dashed"></i>
+              <p>No cached scans</p>
+              <span>Run a scan to save results</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn secondary" id="cancelScanPicker">Cancel</button>
+          <button class="modal-btn danger" id="deleteAllScans">
+            <i class="ph ph-trash"></i> Delete All
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cache Status Toast -->
+    <div id="cacheToast" class="cache-toast">
+      <i class="ph ph-database"></i>
+      <span id="cacheToastMessage">Loaded from cache</span>
+    </div>
+  </div>
+
+  <!-- Hidden elements for backward compatibility -->
+  <div id="progress" class="progress" style="display:none;"></div>
+  <div id="stats" class="stats" style="display:none;"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

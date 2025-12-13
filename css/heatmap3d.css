@@ -1,0 +1,488 @@
+/**
+ * Heatmap 3D View Styles
+ * Sub-tab navigation and 3D chart components
+ * Follows TRACE 3D design language
+ */
+
+/* =============================================================================
+   Sub-Tab Navigation
+   ============================================================================= */
+
+.heatmap-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.heatmap-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.heatmap-view-tab:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-bright);
+  color: var(--text-secondary);
+}
+
+.heatmap-view-tab.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.heatmap-view-tab i {
+  font-size: 14px;
+}
+
+/* View label - hide on small screens */
+.heatmap-view-label {
+  white-space: nowrap;
+}
+
+/* Separator between tabs and controls */
+.heatmap-view-separator {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 12px;
+}
+
+/* =============================================================================
+   3D Controls (shown only for 3D views)
+   ============================================================================= */
+
+.heatmap-3d-controls {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.heatmap-3d-controls.visible {
+  display: flex;
+}
+
+.heatmap-3d-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.heatmap-3d-control label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.heatmap-3d-control select {
+  padding: 4px 8px;
+  padding-right: 22px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235a6b7d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+}
+
+.heatmap-3d-control select:hover {
+  border-color: var(--border-bright);
+}
+
+.heatmap-3d-control select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Industry filter dropdown - needs more width for long names */
+#industryFilter {
+  min-width: 140px;
+  max-width: 180px;
+}
+
+/* =============================================================================
+   Chart Container Adjustments
+   ============================================================================= */
+
+/* Ensure heatmap panel fills container */
+#panel-heatmap {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+
+#panel-heatmap.active {
+  display: flex;
+}
+
+/* Chart section fills remaining space after tabs */
+#panel-heatmap > .chart-section,
+#panel-heatmap .chart-section {
+  flex: 1 1 auto;
+  min-height: 400px;
+  position: relative;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Container for all chart views - fills chart-section */
+.heatmap-chart-container {
+  flex: 1 1 0;
+  position: relative;
+  min-height: 400px;
+  width: 100%;
+  height: 100%;
+}
+
+#heatmapContainer,
+#heatmap3dContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Default: show 2D, hide 3D */
+#heatmapContainer {
+  display: block;
+  z-index: 2;
+}
+
+#heatmap3dContainer {
+  display: none;
+  z-index: 1;
+}
+
+/* Show appropriate container based on view mode */
+.chart-section[data-view="2d"] #heatmapContainer {
+  display: block;
+  z-index: 2;
+}
+.chart-section[data-view="2d"] #heatmap3dContainer {
+  display: none;
+  z-index: 1;
+}
+
+.chart-section[data-view="bar3d"] #heatmapContainer,
+.chart-section[data-view="scatter3d"] #heatmapContainer {
+  display: none;
+  z-index: 1;
+}
+.chart-section[data-view="bar3d"] #heatmap3dContainer,
+.chart-section[data-view="scatter3d"] #heatmap3dContainer {
+  display: block;
+  z-index: 2;
+}
+
+/* =============================================================================
+   3D Chart Hint Overlay
+   ============================================================================= */
+
+.chart-hint-3d {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 6px 14px;
+  background: rgba(18, 24, 32, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: none;
+  gap: 16px;
+}
+
+.chart-hint-3d.visible {
+  display: flex;
+}
+
+.chart-hint-3d span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-hint-3d kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-secondary);
+}
+
+/* =============================================================================
+   Color Legend for 3D Bar Chart (IV-based coloring)
+   ============================================================================= */
+
+.heatmap-iv-legend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(18, 24, 32, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.heatmap-iv-legend.visible {
+  display: flex;
+}
+
+.heatmap-iv-legend-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.heatmap-iv-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heatmap-iv-legend-color {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.heatmap-iv-legend-color.low {
+  background: #00d4aa;  /* Cyan/Teal - opportunities */
+}
+
+.heatmap-iv-legend-color.mid {
+  background: #3b82f6;  /* Blue - neutral */
+}
+
+.heatmap-iv-legend-color.high {
+  background: #ff4757;  /* Red - expensive */
+}
+
+.heatmap-iv-legend-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* =============================================================================
+   Scatter Plot Industry Legend
+   ============================================================================= */
+
+.heatmap-scatter-legend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(18, 24, 32, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.heatmap-scatter-legend.visible {
+  display: flex;
+}
+
+.heatmap-scatter-legend-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  position: sticky;
+  top: 0;
+  background: rgba(18, 24, 32, 0.95);
+  padding-bottom: 4px;
+}
+
+.heatmap-scatter-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heatmap-scatter-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.heatmap-scatter-legend-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* =============================================================================
+   Loading State
+   ============================================================================= */
+
+.heatmap-loading {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 14, 20, 0.8);
+  z-index: 150;
+}
+
+.heatmap-loading.visible {
+  display: flex;
+}
+
+.heatmap-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: heatmap-spin 0.8s linear infinite;
+}
+
+@keyframes heatmap-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   Responsive Adjustments
+   ============================================================================= */
+
+@media (max-width: 1200px) {
+  .heatmap-view-tabs {
+    padding: 8px 12px;
+    gap: 3px;
+  }
+
+  .heatmap-view-tab {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .heatmap-view-separator {
+    margin: 0 8px;
+  }
+
+  .heatmap-3d-controls {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .heatmap-view-label {
+    display: none;
+  }
+
+  .heatmap-view-tab {
+    padding: 6px 10px;
+  }
+
+  .heatmap-view-tab i {
+    font-size: 16px;
+  }
+
+  .heatmap-view-separator {
+    display: none;
+  }
+
+  .heatmap-3d-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    margin-left: 0;
+    padding: 6px 10px;
+    background: rgba(18, 24, 32, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    z-index: 100;
+    gap: 10px;
+  }
+
+  .heatmap-3d-control label {
+    display: none;
+  }
+
+  #industryFilter {
+    min-width: 100px;
+    max-width: 130px;
+  }
+
+  .heatmap-iv-legend,
+  .heatmap-scatter-legend {
+    top: auto;
+    bottom: 50px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .heatmap-view-tabs {
+    padding: 6px 8px;
+  }
+
+  .heatmap-view-tab {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .chart-hint-3d {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+  }
+}
