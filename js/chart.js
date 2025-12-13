@@ -133,7 +133,6 @@ export function setViewMode(view) {
   const chartHint3d = document.getElementById('chartHint3d');
   const ivLegend = document.getElementById('heatmapIvLegend');
   const scatterLegend = document.getElementById('heatmapScatterLegend');
-  const legend2d = document.getElementById('heatmap2dLegend');
 
   // Show 2D controls (Back to All button) only when viewing specific industry in 2D
   if (controls2d) controls2d.style.display = (view === '2d' && selectedIndustry !== 'all') ? 'flex' : 'none';
@@ -146,11 +145,14 @@ export function setViewMode(view) {
 
   if (chartHint2d) chartHint2d.style.display = view === '2d' ? 'block' : 'none';
   if (chartHint3d) chartHint3d.classList.toggle('visible', view !== '2d');
-  if (ivLegend) ivLegend.classList.toggle('visible', view === 'bar3d');
   if (scatterLegend) scatterLegend.classList.toggle('visible', view === 'scatter3d');
 
-  // Hide 2D legend when not in 2D view (it will be shown by renderHeatmap if needed)
-  if (legend2d && view !== '2d') legend2d.classList.remove('visible');
+  // Update bar legend based on current color metric (or hide if not bar3d)
+  if (view === 'bar3d') {
+    updateBarLegend(colorMetric);
+  } else if (ivLegend) {
+    ivLegend.classList.remove('visible');
+  }
 
   // Re-render with current contracts after CSS has applied
   if (currentContracts.length > 0) {
@@ -169,8 +171,59 @@ export function setViewMode(view) {
  */
 export function setColorMetric(metric) {
   colorMetric = metric;
-  if (currentView === 'bar3d' && currentContracts.length > 0) {
-    renderBar3D(currentContracts);
+  if (currentView === 'bar3d') {
+    updateBarLegend(metric);
+    if (currentContracts.length > 0) {
+      renderBar3D(currentContracts);
+    }
+  }
+}
+
+/**
+ * Update the 3D bar legend based on selected color metric
+ * @param {string} metric - 'iv' | 'price' | 'count'
+ */
+function updateBarLegend(metric) {
+  const legend = document.getElementById('heatmapIvLegend');
+  if (!legend) return;
+
+  if (metric === 'iv') {
+    legend.innerHTML = `
+      <div class="heatmap-iv-legend-title">Avg IV</div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color low"></div>
+        <span class="heatmap-iv-legend-label">&lt; 25% (Low)</span>
+      </div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color mid"></div>
+        <span class="heatmap-iv-legend-label">25-40%</span>
+      </div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color high"></div>
+        <span class="heatmap-iv-legend-label">&gt; 40% (High)</span>
+      </div>
+    `;
+    legend.classList.add('visible');
+  } else if (metric === 'price') {
+    legend.innerHTML = `
+      <div class="heatmap-iv-legend-title">Avg Price</div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color low"></div>
+        <span class="heatmap-iv-legend-label">&lt; $0.25 (Cheap)</span>
+      </div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color mid"></div>
+        <span class="heatmap-iv-legend-label">$0.25-$1.00</span>
+      </div>
+      <div class="heatmap-iv-legend-item">
+        <div class="heatmap-iv-legend-color high"></div>
+        <span class="heatmap-iv-legend-label">&gt; $1.00 (Expensive)</span>
+      </div>
+    `;
+    legend.classList.add('visible');
+  } else {
+    // Count - hide legend (uniform color)
+    legend.classList.remove('visible');
   }
 }
 
@@ -374,39 +427,6 @@ function buildHierarchicalData(contracts) {
 }
 
 /**
- * Update the heatmap industry legend
- * @param {object} industryColorMap - Map of industry names to colors
- * @param {string} selectedIndustry - Currently selected industry filter
- */
-function updateHeatmapLegend(industryColorMap, selectedIndustry) {
-  const legend = document.getElementById('heatmap2dLegend');
-  if (!legend) return;
-
-  // Only show legend in 2D view when showing all industries
-  if (currentView !== '2d' || selectedIndustry !== 'all') {
-    legend.classList.remove('visible');
-    return;
-  }
-
-  // Build legend items
-  const industries = Object.keys(industryColorMap).sort();
-  let html = '<div class="heatmap-2d-legend-title">Industries</div>';
-
-  industries.forEach(industry => {
-    const color = industryColorMap[industry];
-    html += `
-      <div class="heatmap-2d-legend-item">
-        <span class="heatmap-2d-legend-dot" style="background:${color}"></span>
-        <span class="heatmap-2d-legend-label">${industry}</span>
-      </div>
-    `;
-  });
-
-  legend.innerHTML = html;
-  legend.classList.add('visible');
-}
-
-/**
  * Build Y-axis labels and data based on selected industry filter
  * @param {object} hierarchicalData - Data from buildHierarchicalData()
  * @param {string} industryFilter - 'all' or specific industry name
@@ -494,10 +514,7 @@ export function renderHeatmap(contracts) {
   const hierarchicalData = buildHierarchicalData(contracts);
   const displayData = buildDisplayData(hierarchicalData, selectedIndustry);
 
-  const { yAxisLabels, yAxisMeta, data, maxCount, xAxis, industryColorMap } = displayData;
-
-  // Update industry legend for 2D view
-  updateHeatmapLegend(industryColorMap, selectedIndustry);
+  const { yAxisLabels, yAxisMeta, data, maxCount, xAxis } = displayData;
 
   // Handle case with no data
   if (data.length === 0) {
