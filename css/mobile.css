@@ -14,25 +14,21 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 20px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease;
   flex-shrink: 0;
 }
 
 .mobile-menu-btn:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-bright);
   color: var(--text);
 }
 
 .mobile-menu-btn.active {
-  background: var(--accent-dim);
-  border-color: var(--accent);
   color: var(--accent);
 }
 
@@ -119,17 +115,38 @@
   }
 
   /* ----- Header Mobile Layout ----- */
+  /* Layout: [Logo] [Status] ... [Filters] [Settings] [Universe] */
   .header {
-    padding: 0 12px;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
+    display: flex;
+    align-items: center;
   }
 
+  /* Logo on left */
   .logo {
+    order: 1;
     padding-right: 0;
     border-right: none;
   }
 
   .logo-text {
+    display: block;
+    font-size: 13px;
+  }
+
+  .logo-text span {
+    display: inline; /* Show full "Energy Scanner" */
+  }
+
+  /* Status indicator after logo */
+  .scan-status {
+    order: 2;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .scan-status span {
     display: none;
   }
 
@@ -141,22 +158,36 @@
     display: none;
   }
 
-  .scan-status {
-    margin-left: auto;
-    padding: 6px 10px;
-    font-size: 11px;
-  }
-
-  .scan-status span {
-    display: none;
+  /* Control buttons grouped on right - clean borderless look */
+  #filtersToggle {
+    order: 3;
+    margin-left: auto; /* Push to right */
   }
 
   .settings-dropdown {
-    order: 1;
+    order: 4;
+  }
+
+  .settings-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+  }
+
+  .settings-btn:hover {
+    background: transparent;
+    border: none;
+    color: var(--text);
+  }
+
+  .settings-btn.active {
+    background: transparent;
+    border: none;
+    color: var(--accent);
   }
 
   .mobile-universe-btn {
-    order: 2;
+    order: 5;
   }
 
   /* ----- Filters Sidebar - Off-canvas from left ----- */
@@ -201,8 +232,8 @@
 
   /* ----- Tab bar adjustments ----- */
   .tab-bar {
-    padding: 0 8px;
-    gap: 0;
+    padding: 4px 6px; /* Small edge padding */
+    gap: 4px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none; /* Firefox */
@@ -213,9 +244,10 @@
   }
 
   .tab {
-    padding: 10px 14px;
+    padding: 8px 12px;
     gap: 6px;
     flex-shrink: 0;
+    min-height: 36px; /* Consistent height for buttons */
   }
 
   .tab-label {
@@ -223,7 +255,23 @@
   }
 
   .tab-icon {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  /* Tab badge - position as indicator on mobile when labels are hidden */
+  .tab {
+    position: relative;
+  }
+
+  .tab-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 1px 4px;
+    font-size: 8px;
+    min-width: 14px;
+    text-align: center;
+    border-radius: 7px;
   }
 
   .tab-shortcuts-hint {
@@ -231,29 +279,63 @@
   }
 
   /* ----- Bottom bar ----- */
+  /* Layout: [Scan] [Progress] [Export] */
   .bottom-bar {
-    grid-template-columns: auto 1fr;
-    gap: 12px;
-    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
   }
 
   .bottom-stats {
     display: none;
   }
 
+  /* Reorder with flexbox */
   .action-controls {
-    gap: 6px;
+    display: contents; /* Allow children to participate in parent flex */
   }
 
-  .action-btn {
-    padding: 12px 16px;
-    font-size: 13px;
-    min-height: 44px;
+  /* Scan button - left aligned, compact */
+  .action-btn.primary {
+    order: 1;
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 36px; /* Match tab bar height */
+    height: 36px;
+    flex-shrink: 0;
   }
 
-  /* Show text on primary button, hide on secondary */
   .action-btn.primary span:not(.action-btn-icon) {
     display: inline;
+  }
+
+  /* Progress section - center, takes remaining space */
+  .progress-section {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    margin: 0 4px;
+  }
+
+  .progress-text {
+    font-size: 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .progress-bar-container {
+    height: 3px;
+  }
+
+  /* Export button - right aligned, icon only */
+  .action-btn.secondary {
+    order: 3;
+    padding: 6px 10px;
+    min-height: 36px; /* Match tab bar height */
+    height: 36px;
+    flex-shrink: 0;
   }
 
   .action-btn.secondary span:not(.action-btn-icon) {
@@ -261,19 +343,7 @@
   }
 
   .action-btn-icon {
-    font-size: 18px;
-  }
-
-  /* Progress section */
-  .progress-section {
-    min-width: 0;
-  }
-
-  .progress-text {
-    font-size: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 16px;
   }
 
   /* ----- Side panel full width ----- */
@@ -388,30 +458,41 @@
 
 @media (max-width: 480px) {
   :root {
-    --header-height: 52px;
-    --bottom-bar-height: 60px;
+    --header-height: 48px;
+    --bottom-bar-height: 48px;
   }
 
   .mobile-menu-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    min-width: 32px;
+    min-height: 32px;
   }
 
   .logo-mark {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  .logo-text {
+    font-size: 11px;
+  }
+
+  .logo-text span {
+    display: inline; /* Keep full "Energy Scanner" visible */
   }
 
   .settings-btn {
     width: 32px;
     height: 32px;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .scan-status {
-    padding: 5px 8px;
+    padding: 4px 6px;
+    font-size: 9px;
   }
 
   /* Sidebars - full width on small screens */
@@ -421,23 +502,41 @@
     max-width: 100%;
   }
 
-  /* Tab bar */
+  /* Tab bar - even more compact */
+  .tab-bar {
+    padding: 3px 4px;
+    gap: 2px;
+  }
+
   .tab {
-    padding: 8px 12px;
+    padding: 6px 10px;
+    min-height: 32px;
   }
 
   .tab-icon {
-    font-size: 18px;
+    font-size: 16px;
   }
 
-  /* Bottom bar */
-  .action-btn {
-    padding: 10px 14px;
-    min-height: 44px;
+  /* Bottom bar - compact matching tab bar */
+  .bottom-bar {
+    padding: 4px 6px;
+    gap: 6px;
   }
 
-  .action-btn.primary {
-    flex: 1;
+  .action-btn.primary,
+  .action-btn.secondary {
+    min-height: 32px;
+    height: 32px;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .action-btn-icon {
+    font-size: 14px;
+  }
+
+  .progress-text {
+    font-size: 8px;
   }
 
   /* Chart hint */
@@ -471,7 +570,54 @@
   input[type="text"],
   select {
     padding: 10px 12px;
-    font-size: 14px; /* Prevents iOS zoom on focus */
+    font-size: 16px; /* 16px prevents iOS zoom on focus */
+  }
+
+  /* iOS Safari date picker improvements */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 44px; /* Touch-friendly height */
+    line-height: 1.4;
+    position: relative;
+  }
+
+  /* Style the calendar icon on WebKit browsers */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background-color: var(--bg-elevated);
+    border-radius: 4px;
+    padding: 6px;
+    cursor: pointer;
+    filter: invert(0.7); /* Make icon visible on dark background */
+    opacity: 0.8;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Clear button on date inputs */
+  input[type="date"]::-webkit-clear-button {
+    -webkit-appearance: none;
+    display: none;
+  }
+
+  /* Inner spin button on date inputs */
+  input[type="date"]::-webkit-inner-spin-button {
+    display: none;
+  }
+
+  /* Date input row styling for better touch */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .date-label {
+    min-width: 32px;
+    font-size: 11px;
+    color: var(--text-muted);
   }
 
   /* Key levels */

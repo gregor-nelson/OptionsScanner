@@ -532,9 +532,12 @@ export function renderHeatmap(contracts) {
     backgroundColor: 'transparent',
     tooltip: {
       position: 'top',
+      confine: true,  // Keep tooltip within chart bounds (important for mobile)
       backgroundColor: '#232d3f',
       borderColor: '#3d4f66',
-      textStyle: { color: '#e6edf5' },
+      padding: [10, 14],  // Larger padding for touch targets
+      textStyle: { color: '#e6edf5', fontSize: 13 },
+      extraCssText: 'max-width: 280px; white-space: normal;',  // Mobile-friendly width
       formatter: function(params) {
         const meta = yAxisMeta[params.value[1]];
         const expMonth = xAxis[params.value[0]];
@@ -843,9 +846,12 @@ function renderBar3D(contracts) {
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
+      confine: true,  // Keep tooltip within chart bounds (important for mobile)
       backgroundColor: '#232d3f',
       borderColor: '#3d4f66',
-      textStyle: { color: '#e6edf5', fontSize: 12 },
+      padding: [10, 14],  // Larger padding for touch targets
+      textStyle: { color: '#e6edf5', fontSize: 13 },
+      extraCssText: 'max-width: 280px; white-space: normal;',  // Mobile-friendly width
       formatter: function(params) {
         const d = params.data;
         if (!d || !d.meta) return '';
@@ -1070,9 +1076,12 @@ function renderScatter3D(contracts) {
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
+      confine: true,  // Keep tooltip within chart bounds (important for mobile)
       backgroundColor: '#232d3f',
       borderColor: '#3d4f66',
-      textStyle: { color: '#e6edf5', fontSize: 12 },
+      padding: [10, 14],  // Larger padding for touch targets
+      textStyle: { color: '#e6edf5', fontSize: 13 },
+      extraCssText: 'max-width: 280px; white-space: normal;',  // Mobile-friendly width
       formatter: function(params) {
         const c = params.data.contract;
         if (!c) return '';

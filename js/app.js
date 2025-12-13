@@ -298,7 +298,7 @@ function setupMobileSidebars() {
 }
 
 /**
- * Set up swipe-to-close gesture for a sidebar
+ * Set up swipe-to-close gesture for a sidebar with visual feedback
  * @param {HTMLElement} sidebar - The sidebar element
  * @param {string} direction - 'left' or 'right' (direction to swipe to close)
  * @param {Function} onClose - Callback when closed
@@ -308,11 +308,62 @@ function setupSwipeToClose(sidebar, direction, onClose) {
 
   const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
   const VELOCITY_THRESHOLD = 0.3; // Minimum velocity for quick swipe
+  const MAX_SWIPE_DISTANCE = 200; // Max distance for visual feedback calculation
 
   let touchStartX = 0;
   let touchStartY = 0;
   let touchStartTime = 0;
   let isSwiping = false;
+  let currentDeltaX = 0;
+
+  // Get overlay for opacity feedback
+  const overlay = document.getElementById('sidebarOverlay');
+
+  /**
+   * Apply visual feedback during swipe
+   */
+  const applySwipeFeedback = (deltaX) => {
+    // Only apply feedback when swiping in close direction
+    const isClosingDirection = (direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0);
+    if (!isClosingDirection) {
+      resetSwipeFeedback();
+      return;
+    }
+
+    const absDistance = Math.abs(deltaX);
+    const progress = Math.min(absDistance / MAX_SWIPE_DISTANCE, 1);
+
+    // Disable transition during drag for smooth feedback
+    sidebar.style.transition = 'none';
+
+    // Apply transform (follow finger)
+    const translateX = direction === 'left' ? deltaX : deltaX;
+    sidebar.style.transform = `translateX(${translateX}px)`;
+
+    // Apply opacity to sidebar based on swipe progress
+    sidebar.style.opacity = 1 - (progress * 0.3);
+
+    // Apply opacity to overlay
+    if (overlay) {
+      overlay.style.transition = 'none';
+      overlay.style.opacity = 1 - progress;
+    }
+  };
+
+  /**
+   * Reset visual feedback (snap back)
+   */
+  const resetSwipeFeedback = () => {
+    // Re-enable transition for snap back
+    sidebar.style.transition = '';
+    sidebar.style.transform = '';
+    sidebar.style.opacity = '';
+
+    if (overlay) {
+      overlay.style.transition = '';
+      overlay.style.opacity = '';
+    }
+  };
 
   sidebar.addEventListener('touchstart', (e) => {
     // Only track if sidebar is open
@@ -322,6 +373,7 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     touchStartY = e.touches[0].clientY;
     touchStartTime = Date.now();
     isSwiping = false;
+    currentDeltaX = 0;
   }, { passive: true });
 
   sidebar.addEventListener('touchmove', (e) => {
@@ -335,17 +387,23 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     // Only consider horizontal swipes (more horizontal than vertical movement)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       isSwiping = true;
+      currentDeltaX = deltaX;
 
       // Check if swiping in the correct direction to close
       if ((direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0)) {
         // Prevent scrolling while swiping
         e.preventDefault();
+        // Apply visual feedback
+        applySwipeFeedback(deltaX);
       }
     }
   }, { passive: false });
 
   sidebar.addEventListener('touchend', (e) => {
-    if (!sidebar.classList.contains('open') || !isSwiping) return;
+    if (!sidebar.classList.contains('open')) {
+      resetSwipeFeedback();
+      return;
+    }
 
     const touchEndX = e.changedTouches[0].clientX;
     const deltaX = touchEndX - touchStartX;
@@ -357,11 +415,24 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     const swipedFarEnough = Math.abs(deltaX) >= SWIPE_THRESHOLD;
     const swipedFastEnough = velocity >= VELOCITY_THRESHOLD;
 
-    if (swipedCorrectDirection && (swipedFarEnough || swipedFastEnough)) {
+    if (isSwiping && swipedCorrectDirection && (swipedFarEnough || swipedFastEnough)) {
+      // Close the sidebar - CSS transition will animate the close
+      resetSwipeFeedback();
       onClose();
+    } else {
+      // Snap back with animation
+      resetSwipeFeedback();
     }
 
     isSwiping = false;
+    currentDeltaX = 0;
+  }, { passive: true });
+
+  // Handle touch cancel (e.g., phone call interrupts)
+  sidebar.addEventListener('touchcancel', () => {
+    resetSwipeFeedback();
+    isSwiping = false;
+    currentDeltaX = 0;
   }, { passive: true });
 }
 

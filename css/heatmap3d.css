@@ -545,3 +545,55 @@
     padding: 8px 12px;
   }
 }
+
+/* Very small mobile screens */
+@media (max-width: 480px) {
+  .heatmap-3d-controls {
+    flex-direction: column;
+    gap: 6px;
+    top: 6px;
+    right: 6px;
+    padding: 8px;
+  }
+
+  #industryFilter {
+    min-width: 90px;
+    max-width: 110px;
+    font-size: 10px;
+  }
+
+  #colorMetric {
+    font-size: 10px;
+  }
+
+  .heatmap-iv-legend,
+  .heatmap-scatter-legend {
+    bottom: 40px;
+    right: 6px;
+    padding: 8px 10px;
+    max-height: 150px;
+  }
+
+  .heatmap-iv-legend-title,
+  .heatmap-scatter-legend-title {
+    font-size: 9px;
+  }
+
+  .heatmap-iv-legend-label,
+  .heatmap-scatter-legend-label {
+    font-size: 9px;
+  }
+
+  .chart-hint-3d {
+    font-size: 10px;
+    padding: 6px 10px;
+    bottom: 8px;
+  }
+
+  .chart-hint-3d kbd {
+    font-size: 9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+  }
+}

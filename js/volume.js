@@ -202,9 +202,12 @@ export function renderVolumeChart(contracts, options = {}) {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
+      confine: true,  // Keep tooltip within chart bounds (important for mobile)
       backgroundColor: THEME.bg,
       borderColor: THEME.border,
-      textStyle: { color: THEME.text, fontFamily: 'IBM Plex Sans' },
+      padding: [10, 14],  // Larger padding for touch targets
+      textStyle: { color: THEME.text, fontFamily: 'IBM Plex Sans', fontSize: 13 },
+      extraCssText: 'max-width: 280px; white-space: normal;',  // Mobile-friendly width
       formatter: (params) => {
         const d = chartData[params[0].dataIndex];
         const industryColor = getIndustryColor(d.industry);
