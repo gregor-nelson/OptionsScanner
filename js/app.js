@@ -184,6 +184,9 @@ function setupEventListeners() {
 
   // Set up heatmap 3D view tabs
   initViewTabs();
+
+  // Set up mobile sidebar toggles
+  setupMobileSidebars();
 }
 
 /**
@@ -209,6 +212,84 @@ function setupTabs() {
       e.preventDefault();
       switchTab(TAB_CONFIG[num - 1].id);
     }
+  });
+}
+
+/**
+ * Set up mobile sidebar toggles
+ */
+function setupMobileSidebars() {
+  const filtersToggle = document.getElementById('filtersToggle');
+  const universeToggle = document.getElementById('universeToggle');
+  const filtersClose = document.getElementById('filtersClose');
+  const universeClose = document.getElementById('universeClose');
+  const filtersSidebar = document.getElementById('filtersSidebar');
+  const universeSidebar = document.getElementById('universeSidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  // Helper to close all sidebars
+  const closeAllSidebars = () => {
+    filtersSidebar?.classList.remove('open');
+    universeSidebar?.classList.remove('open');
+    sidebarOverlay?.classList.remove('visible');
+    filtersToggle?.classList.remove('active');
+    universeToggle?.classList.remove('active');
+    document.body.style.overflow = '';
+  };
+
+  // Filters toggle
+  if (filtersToggle && filtersSidebar) {
+    filtersToggle.addEventListener('click', () => {
+      const isOpen = filtersSidebar.classList.contains('open');
+      closeAllSidebars();
+      if (!isOpen) {
+        filtersSidebar.classList.add('open');
+        sidebarOverlay?.classList.add('visible');
+        filtersToggle.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  }
+
+  // Universe toggle
+  if (universeToggle && universeSidebar) {
+    universeToggle.addEventListener('click', () => {
+      const isOpen = universeSidebar.classList.contains('open');
+      closeAllSidebars();
+      if (!isOpen) {
+        universeSidebar.classList.add('open');
+        sidebarOverlay?.classList.add('visible');
+        universeToggle.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  }
+
+  // Close buttons
+  filtersClose?.addEventListener('click', closeAllSidebars);
+  universeClose?.addEventListener('click', closeAllSidebars);
+
+  // Overlay click closes sidebars
+  sidebarOverlay?.addEventListener('click', closeAllSidebars);
+
+  // ESC key closes sidebars
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (filtersSidebar?.classList.contains('open') || universeSidebar?.classList.contains('open')) {
+        closeAllSidebars();
+      }
+    }
+  });
+
+  // Close sidebars on window resize to desktop size
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (window.innerWidth > 768) {
+        closeAllSidebars();
+      }
+    }, 150);
   });
 }
 

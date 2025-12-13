@@ -1205,18 +1205,14 @@ tbody tr:hover td {
 }
 
 /* =============================================================================
-   Responsive - Mobile
+   Responsive - Intermediate (900px)
+   Note: Main mobile styles are at 768px breakpoint below
    ============================================================================= */
 
-@media (max-width: 900px) {
-  .app {
-    grid-template-columns: 1fr;
-    grid-template-rows: var(--header-height) 1fr var(--bottom-bar-height);
-  }
-
-  .filters-sidebar,
-  .universe-sidebar {
-    display: none;
+@media (max-width: 900px) and (min-width: 769px) {
+  :root {
+    --sidebar-left: 200px;
+    --sidebar-right: 160px;
   }
 
   .header {
@@ -1228,75 +1224,11 @@ tbody tr:hover td {
     padding-right: 12px;
   }
 
-  .logo-text {
-    display: none;
-  }
-
   .header-stats {
     gap: 12px;
   }
 
   .header-info {
-    display: none;
-  }
-
-  .bottom-bar {
-    grid-template-columns: auto 1fr;
-    gap: 12px;
-    padding: 10px 12px;
-  }
-
-  .bottom-stats {
-    display: none;
-  }
-
-  .action-btn {
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-
-  .action-btn span:not(.action-btn-icon) {
-    display: none;
-  }
-
-  .side-panel {
-    width: 100%;
-    right: -100%;
-  }
-
-  .view-options {
-    top: 8px;
-    left: 8px;
-  }
-
-  .view-btn {
-    padding: 6px 10px;
-  }
-
-  .view-btn-label {
-    display: none;
-  }
-
-  /* Mobile tab bar */
-  .tab-bar {
-    padding: 0 8px;
-    gap: 0;
-  }
-
-  .tab {
-    padding: 8px 12px;
-    gap: 6px;
-  }
-
-  .tab-label {
-    display: none;
-  }
-
-  .tab-icon {
-    font-size: 18px;
-  }
-
-  .tab-shortcuts-hint {
     display: none;
   }
 
@@ -1828,3 +1760,479 @@ tbody tr:hover td {
 .bg-negative { background: var(--negative-dim); }
 .bg-neutral { background: var(--neutral-dim); }
 .bg-accent { background: var(--accent-dim); }
+
+/* =============================================================================
+   Mobile Menu Buttons (Hidden on Desktop)
+   ============================================================================= */
+
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+
+.mobile-menu-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Sidebar Close Buttons (Hidden on Desktop) */
+.sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+
+/* Mobile Sidebar Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 800;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* =============================================================================
+   Enhanced Mobile Responsive - Tablet (max 1024px)
+   ============================================================================= */
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-left: 240px;
+    --sidebar-right: 200px;
+  }
+}
+
+/* =============================================================================
+   Enhanced Mobile Responsive - Mobile (max 768px)
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  /* Show mobile controls */
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* App Grid - Single column */
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-height) 1fr var(--bottom-bar-height);
+  }
+
+  /* Header adjustments */
+  .header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .logo {
+    padding-right: 0;
+    border-right: none;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .header-stats {
+    display: none;
+  }
+
+  .header-info {
+    display: none;
+  }
+
+  .scan-status {
+    margin-left: auto;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .scan-status span {
+    display: none;
+  }
+
+  .settings-dropdown {
+    order: 1;
+  }
+
+  .mobile-universe-btn {
+    order: 2;
+  }
+
+  /* Filters Sidebar - Off-canvas from left */
+  .filters-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    max-width: 85vw;
+    height: 100vh;
+    z-index: 900;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .filters-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Universe Sidebar - Off-canvas from right */
+  .universe-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    z-index: 900;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .universe-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Tab bar adjustments */
+  .tab-bar {
+    padding: 0 8px;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    padding: 10px 14px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .tab-icon {
+    font-size: 20px;
+  }
+
+  .tab-shortcuts-hint {
+    display: none;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .bottom-stats {
+    display: none;
+  }
+
+  .action-controls {
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 12px 16px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .action-btn span:not(.action-btn-icon) {
+    display: none;
+  }
+
+  .action-btn-icon {
+    font-size: 18px;
+  }
+
+  /* Progress section */
+  .progress-section {
+    min-width: 0;
+  }
+
+  .progress-text {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Side panel full width */
+  .side-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  /* View options */
+  .view-options {
+    top: 8px;
+    left: 8px;
+  }
+
+  .view-btn {
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  .view-btn-label {
+    display: none;
+  }
+
+  /* Table container scroll */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-container table {
+    min-width: 800px;
+  }
+
+  /* Settings menu adjustments */
+  .settings-menu {
+    position: fixed;
+    top: auto;
+    bottom: var(--bottom-bar-height);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    transform: translateY(20px);
+  }
+
+  .settings-menu.open {
+    transform: translateY(0);
+  }
+
+  /* Modal adjustments */
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+    margin: 12px;
+  }
+}
+
+/* =============================================================================
+   Enhanced Mobile Responsive - Small Mobile (max 480px)
+   ============================================================================= */
+
+@media (max-width: 480px) {
+  :root {
+    --header-height: 52px;
+    --bottom-bar-height: 60px;
+  }
+
+  .mobile-menu-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .settings-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .scan-status {
+    padding: 5px 8px;
+  }
+
+  /* Sidebars */
+  .filters-sidebar,
+  .universe-sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Tab bar */
+  .tab {
+    padding: 8px 12px;
+  }
+
+  .tab-icon {
+    font-size: 18px;
+  }
+
+  /* Bottom bar */
+  .action-btn {
+    padding: 10px 14px;
+    min-height: 44px;
+  }
+
+  /* Chart hint */
+  .chart-hint-overlay {
+    font-size: 10px;
+    padding: 5px 10px;
+  }
+
+  /* Panel headers */
+  .panel-header {
+    padding: 10px 14px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+  }
+
+  /* Filters content */
+  .filters-content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .filter-group label {
+    font-size: 10px;
+  }
+
+  input[type="number"],
+  input[type="date"],
+  input[type="text"],
+  select {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* Key levels */
+  .key-levels {
+    padding: 12px;
+  }
+
+  .key-level {
+    padding: 10px 12px;
+  }
+
+  /* Universe list */
+  .universe-count {
+    padding: 8px 12px;
+  }
+
+  .universe-list {
+    padding: 8px 12px;
+  }
+
+  /* Industry breakdown */
+  .industry-breakdown {
+    padding: 12px;
+  }
+}
+
+/* =============================================================================
+   Touch-Friendly Enhancements
+   ============================================================================= */
+
+@media (pointer: coarse) {
+  /* Increase touch targets */
+  .tab {
+    min-height: 44px;
+  }
+
+  .filter-toggle {
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  .action-btn {
+    min-height: 48px;
+  }
+
+  .view-btn {
+    min-height: 40px;
+    padding: 10px 14px;
+  }
+
+  .settings-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .sidebar-close-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Scrollbar visibility for touch */
+  .table-container::-webkit-scrollbar,
+  .filters-content::-webkit-scrollbar,
+  .universe-list::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* Checkbox and radio inputs */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+}

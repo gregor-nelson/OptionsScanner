@@ -14,8 +14,16 @@
 </head>
 <body>
   <div class="app">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Header -->
     <header class="header">
+      <!-- Mobile Menu Toggle (Filters) -->
+      <button class="mobile-menu-btn" id="filtersToggle" aria-label="Toggle filters">
+        <i class="ph ph-faders"></i>
+      </button>
+
       <div class="logo">
         <div class="logo-mark">E</div>
         <div class="logo-text">Energy <span>Scanner</span></div>
@@ -84,10 +92,15 @@
       <div class="header-info">
         <span class="data-source">Data: <a href="https://massive.com" target="_blank">Massive.com</a></span>
       </div>
+
+      <!-- Mobile Universe Toggle -->
+      <button class="mobile-menu-btn mobile-universe-btn" id="universeToggle" aria-label="Toggle universe">
+        <i class="ph ph-list-bullets"></i>
+      </button>
     </header>
 
     <!-- Filters Sidebar -->
-    <aside class="filters-sidebar">
+    <aside class="filters-sidebar" id="filtersSidebar">
       <div class="panel-header">
         <span class="panel-title">Filters</span>
         <div class="filter-toggles">
