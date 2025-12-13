@@ -18,11 +18,36 @@ let currentView = '2d';         // '2d' | 'bar3d' | 'scatter3d'
 let colorMetric = 'iv';         // 'iv' | 'price' | 'count'
 let selectedIndustry = 'all';   // 'all' or specific industry name
 
-// Industry colors for scatter plot (consistent with rest of app)
-const INDUSTRY_COLORS = [
+// Industry colors - consistent with volume chart
+const INDUSTRY_COLORS = {
+  'Oil & Gas Integrated': '#3b82f6',      // Blue
+  'Oil & Gas E&P': '#10b981',             // Emerald
+  'Oil & Gas Equipment & Services': '#f59e0b', // Amber
+  'Oil & Gas Midstream': '#8b5cf6',       // Purple
+  'Oil & Gas Drilling': '#ef4444',        // Red
+  'Uranium': '#06b6d4',                   // Cyan
+  'Other': '#6b7280',                     // Gray fallback
+  'Unknown': '#6b7280'                    // Gray fallback
+};
+
+// Fallback colors for industries not in the map (cycles through these)
+const INDUSTRY_COLORS_FALLBACK = [
   '#00d4aa', '#3b82f6', '#ffa502', '#ff4757', '#a855f7',
   '#14b8a6', '#f97316', '#ec4899', '#84cc16', '#06b6d4'
 ];
+
+/**
+ * Get color for an industry
+ * @param {string} industry - Industry name
+ * @param {number} index - Optional fallback index for unknown industries
+ * @returns {string} - Hex color
+ */
+function getIndustryColor(industry, index = 0) {
+  if (INDUSTRY_COLORS[industry]) {
+    return INDUSTRY_COLORS[industry];
+  }
+  return INDUSTRY_COLORS_FALLBACK[index % INDUSTRY_COLORS_FALLBACK.length];
+}
 
 /**
  * Initialize the heatmap chart
@@ -108,6 +133,7 @@ export function setViewMode(view) {
   const chartHint3d = document.getElementById('chartHint3d');
   const ivLegend = document.getElementById('heatmapIvLegend');
   const scatterLegend = document.getElementById('heatmapScatterLegend');
+  const legend2d = document.getElementById('heatmap2dLegend');
 
   // Show 2D controls (Back to All button) only when viewing specific industry in 2D
   if (controls2d) controls2d.style.display = (view === '2d' && selectedIndustry !== 'all') ? 'flex' : 'none';
@@ -122,6 +148,9 @@ export function setViewMode(view) {
   if (chartHint3d) chartHint3d.classList.toggle('visible', view !== '2d');
   if (ivLegend) ivLegend.classList.toggle('visible', view === 'bar3d');
   if (scatterLegend) scatterLegend.classList.toggle('visible', view === 'scatter3d');
+
+  // Hide 2D legend when not in 2D view (it will be shown by renderHeatmap if needed)
+  if (legend2d && view !== '2d') legend2d.classList.remove('visible');
 
   // Re-render with current contracts after CSS has applied
   if (currentContracts.length > 0) {
@@ -345,6 +374,39 @@ function buildHierarchicalData(contracts) {
 }
 
 /**
+ * Update the heatmap industry legend
+ * @param {object} industryColorMap - Map of industry names to colors
+ * @param {string} selectedIndustry - Currently selected industry filter
+ */
+function updateHeatmapLegend(industryColorMap, selectedIndustry) {
+  const legend = document.getElementById('heatmap2dLegend');
+  if (!legend) return;
+
+  // Only show legend in 2D view when showing all industries
+  if (currentView !== '2d' || selectedIndustry !== 'all') {
+    legend.classList.remove('visible');
+    return;
+  }
+
+  // Build legend items
+  const industries = Object.keys(industryColorMap).sort();
+  let html = '<div class="heatmap-2d-legend-title">Industries</div>';
+
+  industries.forEach(industry => {
+    const color = industryColorMap[industry];
+    html += `
+      <div class="heatmap-2d-legend-item">
+        <span class="heatmap-2d-legend-dot" style="background:${color}"></span>
+        <span class="heatmap-2d-legend-label">${industry}</span>
+      </div>
+    `;
+  });
+
+  legend.innerHTML = html;
+  legend.classList.add('visible');
+}
+
+/**
  * Build Y-axis labels and data based on selected industry filter
  * @param {object} hierarchicalData - Data from buildHierarchicalData()
  * @param {string} industryFilter - 'all' or specific industry name
@@ -357,11 +419,20 @@ function buildDisplayData(hierarchicalData, industryFilter) {
   const data = [];
   let maxCount = 0;
 
+  // Build industry color map for consistent coloring
+  const industryColorMap = {};
+  let colorIndex = 0;
+  industries.forEach(industry => {
+    industryColorMap[industry.name] = getIndustryColor(industry.name, colorIndex);
+    colorIndex++;
+  });
+
   if (industryFilter === 'all') {
     // Show all industries as single rows (clickable to drill down)
     industries.forEach(industry => {
+      const color = industryColorMap[industry.name];
       yAxisLabels.push(industry.name);
-      yAxisMeta.push({ type: 'industry', industry: industry.name });
+      yAxisMeta.push({ type: 'industry', industry: industry.name, color });
 
       const yIdx = yAxisLabels.length - 1;
       expirations.forEach((expMonth, xIdx) => {
@@ -374,10 +445,11 @@ function buildDisplayData(hierarchicalData, industryFilter) {
     });
   } else {
     // Show only tickers from selected industry
+    const color = industryColorMap[industryFilter] || getIndustryColor(industryFilter, 0);
     const tickers = tickersByIndustry[industryFilter] || [];
     tickers.forEach(tickerData => {
       yAxisLabels.push(tickerData.ticker);
-      yAxisMeta.push({ type: 'ticker', ticker: tickerData.ticker, industry: industryFilter });
+      yAxisMeta.push({ type: 'ticker', ticker: tickerData.ticker, industry: industryFilter, color });
 
       const tickerYIdx = yAxisLabels.length - 1;
       expirations.forEach((expMonth, xIdx) => {
@@ -390,7 +462,7 @@ function buildDisplayData(hierarchicalData, industryFilter) {
     });
   }
 
-  return { yAxisLabels, yAxisMeta, data, maxCount, xAxis: expirations };
+  return { yAxisLabels, yAxisMeta, data, maxCount, xAxis: expirations, industryColorMap };
 }
 
 /**
@@ -422,7 +494,10 @@ export function renderHeatmap(contracts) {
   const hierarchicalData = buildHierarchicalData(contracts);
   const displayData = buildDisplayData(hierarchicalData, selectedIndustry);
 
-  const { yAxisLabels, yAxisMeta, data, maxCount, xAxis } = displayData;
+  const { yAxisLabels, yAxisMeta, data, maxCount, xAxis, industryColorMap } = displayData;
+
+  // Update industry legend for 2D view
+  updateHeatmapLegend(industryColorMap, selectedIndustry);
 
   // Handle case with no data
   if (data.length === 0) {
@@ -490,19 +565,43 @@ export function renderHeatmap(contracts) {
       axisLabel: {
         fontSize: 11,
         color: '#8b9eb3',
-        fontWeight: function(value, index) {
-          // Bold for industry rows, normal for ticker rows
+        formatter: function(value, index) {
+          // Truncate long names and add colored dot
           const meta = yAxisMeta[index];
-          return meta && meta.type === 'industry' ? 'bold' : 'normal';
-        },
-        formatter: function(value) {
-          // Truncate long names
-          const maxLen = 25;
+          const maxLen = 22;
+          let displayName = value;
           if (value.length > maxLen) {
-            return value.substring(0, maxLen) + '...';
+            displayName = value.substring(0, maxLen) + '...';
           }
-          return value;
-        }
+          // Use unique color key for the dot
+          const colorKey = 'c' + index;
+          const textKey = meta.type === 'industry' ? 'textBold' : 'text';
+          return '{' + colorKey + '|●} {' + textKey + '|' + displayName + '}';
+        },
+        rich: (function() {
+          // Build dynamic rich styles for each row's color
+          const styles = {
+            text: {
+              color: '#8b9eb3',
+              fontSize: 11,
+              padding: [0, 0, 0, 2]
+            },
+            textBold: {
+              color: '#8b9eb3',
+              fontSize: 11,
+              fontWeight: 'bold',
+              padding: [0, 0, 0, 2]
+            }
+          };
+          // Add a color style for each row
+          yAxisMeta.forEach((meta, idx) => {
+            styles['c' + idx] = {
+              color: meta.color || '#6b7280',
+              fontSize: 10
+            };
+          });
+          return styles;
+        })()
       }
     },
     visualMap: {
@@ -841,11 +940,11 @@ function renderBar3D(contracts) {
  * Build scatter plot data from contracts
  */
 function buildScatterData(contracts) {
-  // Get unique industries and assign colors
+  // Get unique industries and assign colors using consistent color mapping
   const industries = [...new Set(contracts.map(c => c._meta?.industry || 'Other'))];
   const industryColorMap = {};
   industries.forEach((ind, i) => {
-    industryColorMap[ind] = INDUSTRY_COLORS[i % INDUSTRY_COLORS.length];
+    industryColorMap[ind] = getIndustryColor(ind, i);
   });
 
   // Build scatter points
