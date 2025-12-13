@@ -7,7 +7,7 @@ import { ApiClient } from './api.js';
 import { OptionsScanner } from './scanner.js';
 import { CONFIG, DEFAULT_UNIVERSE } from './config.js';
 import { formatCurrency, formatPercent, formatDate, formatNumber } from './utils.js';
-import { renderHeatmap, hideChart, expandAll, collapseAll, resetChartState, resizeChart, initViewTabs, init3dChart, populateIndustryDropdown } from './chart.js';
+import { renderHeatmap, hideChart, resetChartState, resizeChart, initViewTabs, init3dChart, populateIndustryDropdown, setIndustryFilter } from './chart.js';
 import { cacheManager } from './cache.js';
 import { renderVolumeChart, refreshVolumeChart, setupVolumeControls, resizeVolumeChart, renderIndustryLegend } from './volume.js';
 
@@ -137,15 +137,12 @@ function setupEventListeners() {
     }
   });
 
-  // Chart expand/collapse buttons
-  const expandAllBtn = document.getElementById('expandAllBtn');
-  if (expandAllBtn) {
-    expandAllBtn.addEventListener('click', expandAll);
-  }
-
-  const collapseAllBtn = document.getElementById('collapseAllBtn');
-  if (collapseAllBtn) {
-    collapseAllBtn.addEventListener('click', collapseAll);
+  // Back to All Industries button
+  const backToAllBtn = document.getElementById('backToAllBtn');
+  if (backToAllBtn) {
+    backToAllBtn.addEventListener('click', () => {
+      setIndustryFilter('all');
+    });
   }
 
   // Filter toggles (Calls/Puts)

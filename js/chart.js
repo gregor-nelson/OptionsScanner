@@ -13,11 +13,10 @@ import { formatCurrency, formatPercent, formatNumber } from './utils.js';
 let heatmapChart = null;
 let heatmap3dChart = null;
 let currentContracts = [];      // All contracts from last render
-let expandedIndustries = new Set();  // Which industries are expanded (2D only)
 let contractMap = {};           // Stores contracts by key for drill-down
 let currentView = '2d';         // '2d' | 'bar3d' | 'scatter3d'
 let colorMetric = 'iv';         // 'iv' | 'price' | 'count'
-let selectedIndustry = 'all';   // 'all' or specific industry name (3D views)
+let selectedIndustry = 'all';   // 'all' or specific industry name
 
 // Industry colors for scatter plot (consistent with rest of app)
 const INDUSTRY_COLORS = [
@@ -104,13 +103,21 @@ export function setViewMode(view) {
   // Toggle UI elements based on view
   const controls2d = document.getElementById('heatmap2dControls');
   const controls3d = document.getElementById('heatmap3dControls');
+  const colorMetricControl = document.getElementById('colorMetricControl');
   const chartHint2d = document.getElementById('chartHint');
   const chartHint3d = document.getElementById('chartHint3d');
   const ivLegend = document.getElementById('heatmapIvLegend');
   const scatterLegend = document.getElementById('heatmapScatterLegend');
 
-  if (controls2d) controls2d.style.display = view === '2d' ? 'flex' : 'none';
-  if (controls3d) controls3d.classList.toggle('visible', view !== '2d');
+  // Show 2D controls (Back to All button) only when viewing specific industry in 2D
+  if (controls2d) controls2d.style.display = (view === '2d' && selectedIndustry !== 'all') ? 'flex' : 'none';
+
+  // Always show industry filter (3D controls container)
+  if (controls3d) controls3d.classList.add('visible');
+
+  // Hide color metric dropdown for non-3D-bar views (only relevant for 3D bar chart)
+  if (colorMetricControl) colorMetricControl.style.display = view === 'bar3d' ? 'flex' : 'none';
+
   if (chartHint2d) chartHint2d.style.display = view === '2d' ? 'block' : 'none';
   if (chartHint3d) chartHint3d.classList.toggle('visible', view !== '2d');
   if (ivLegend) ivLegend.classList.toggle('visible', view === 'bar3d');
@@ -139,7 +146,7 @@ export function setColorMetric(metric) {
 }
 
 /**
- * Set the industry filter for 3D views and re-render
+ * Set the industry filter for all views and re-render
  * @param {string} industry - 'all' or specific industry name
  */
 export function setIndustryFilter(industry) {
@@ -151,9 +158,17 @@ export function setIndustryFilter(industry) {
     dropdown.value = industry;
   }
 
-  // Re-render current 3D view
+  // Update 2D controls visibility (show "Back to All" when viewing specific industry)
+  const controls2d = document.getElementById('heatmap2dControls');
+  if (controls2d) {
+    controls2d.style.display = (currentView === '2d' && industry !== 'all') ? 'flex' : 'none';
+  }
+
+  // Re-render current view
   if (currentContracts.length > 0) {
-    if (currentView === 'bar3d') {
+    if (currentView === '2d') {
+      renderHeatmap(currentContracts);
+    } else if (currentView === 'bar3d') {
       renderBar3D(currentContracts);
     } else if (currentView === 'scatter3d') {
       renderScatter3D(currentContracts);
@@ -330,9 +345,11 @@ function buildHierarchicalData(contracts) {
 }
 
 /**
- * Build Y-axis labels and data based on expanded state
+ * Build Y-axis labels and data based on selected industry filter
+ * @param {object} hierarchicalData - Data from buildHierarchicalData()
+ * @param {string} industryFilter - 'all' or specific industry name
  */
-function buildDisplayData(hierarchicalData, expandedIndustries) {
+function buildDisplayData(hierarchicalData, industryFilter) {
   const { industries, tickersByIndustry, expirations } = hierarchicalData;
 
   const yAxisLabels = [];
@@ -340,42 +357,11 @@ function buildDisplayData(hierarchicalData, expandedIndustries) {
   const data = [];
   let maxCount = 0;
 
-  industries.forEach(industry => {
-    const isExpanded = expandedIndustries.has(industry.name);
-
-    if (isExpanded) {
-      // Add industry header row (clickable to collapse)
-      yAxisLabels.push(`▼ ${industry.name}`);
-      yAxisMeta.push({ type: 'industry-header', industry: industry.name, expanded: true });
-
-      const headerYIdx = yAxisLabels.length - 1;
-      expirations.forEach((expMonth, xIdx) => {
-        const count = industry.byExp[expMonth] || 0;
-        if (count > 0) {
-          data.push([xIdx, headerYIdx, count]);
-          maxCount = Math.max(maxCount, count);
-        }
-      });
-
-      // Add ticker rows for this industry
-      const tickers = tickersByIndustry[industry.name] || [];
-      tickers.forEach(tickerData => {
-        yAxisLabels.push(`    ${tickerData.ticker}`);
-        yAxisMeta.push({ type: 'ticker', ticker: tickerData.ticker, industry: industry.name });
-
-        const tickerYIdx = yAxisLabels.length - 1;
-        expirations.forEach((expMonth, xIdx) => {
-          const count = tickerData.byExp[expMonth] || 0;
-          if (count > 0) {
-            data.push([xIdx, tickerYIdx, count]);
-            maxCount = Math.max(maxCount, count);
-          }
-        });
-      });
-    } else {
-      // Collapsed: just show industry row (clickable to expand)
-      yAxisLabels.push(`▶ ${industry.name}`);
-      yAxisMeta.push({ type: 'industry', industry: industry.name, expanded: false });
+  if (industryFilter === 'all') {
+    // Show all industries as single rows (clickable to drill down)
+    industries.forEach(industry => {
+      yAxisLabels.push(industry.name);
+      yAxisMeta.push({ type: 'industry', industry: industry.name });
 
       const yIdx = yAxisLabels.length - 1;
       expirations.forEach((expMonth, xIdx) => {
@@ -385,8 +371,24 @@ function buildDisplayData(hierarchicalData, expandedIndustries) {
           maxCount = Math.max(maxCount, count);
         }
       });
-    }
-  });
+    });
+  } else {
+    // Show only tickers from selected industry
+    const tickers = tickersByIndustry[industryFilter] || [];
+    tickers.forEach(tickerData => {
+      yAxisLabels.push(tickerData.ticker);
+      yAxisMeta.push({ type: 'ticker', ticker: tickerData.ticker, industry: industryFilter });
+
+      const tickerYIdx = yAxisLabels.length - 1;
+      expirations.forEach((expMonth, xIdx) => {
+        const count = tickerData.byExp[expMonth] || 0;
+        if (count > 0) {
+          data.push([xIdx, tickerYIdx, count]);
+          maxCount = Math.max(maxCount, count);
+        }
+      });
+    });
+  }
 
   return { yAxisLabels, yAxisMeta, data, maxCount, xAxis: expirations };
 }
@@ -418,7 +420,7 @@ export function renderHeatmap(contracts) {
   }
 
   const hierarchicalData = buildHierarchicalData(contracts);
-  const displayData = buildDisplayData(hierarchicalData, expandedIndustries);
+  const displayData = buildDisplayData(hierarchicalData, selectedIndustry);
 
   const { yAxisLabels, yAxisMeta, data, maxCount, xAxis } = displayData;
 
@@ -453,7 +455,7 @@ export function renderHeatmap(contracts) {
         } else {
           return `<strong>${meta.industry}</strong><br/>` +
                  `${expMonth}: ${count} contract${count !== 1 ? 's' : ''}<br/>` +
-                 `<em style="color:#5a6b7d">Click to ${meta.expanded ? 'collapse' : 'expand'}</em>`;
+                 `<em style="color:#5a6b7d">Click to drill down</em>`;
         }
       }
     },
@@ -488,11 +490,13 @@ export function renderHeatmap(contracts) {
       axisLabel: {
         fontSize: 11,
         color: '#8b9eb3',
-        fontWeight: function(value) {
-          return value.startsWith('▶') || value.startsWith('▼') ? 'bold' : 'normal';
+        fontWeight: function(value, index) {
+          // Bold for industry rows, normal for ticker rows
+          const meta = yAxisMeta[index];
+          return meta && meta.type === 'industry' ? 'bold' : 'normal';
         },
         formatter: function(value) {
-          // Truncate long industry names
+          // Truncate long names
           const maxLen = 25;
           if (value.length > maxLen) {
             return value.substring(0, maxLen) + '...';
@@ -555,26 +559,12 @@ export function renderHeatmap(contracts) {
         const key = `ticker|${meta.ticker}|${expMonth}`;
         const cellContracts = contractMap[key] || [];
         showSidePanel(cellContracts, meta.ticker, expMonth);
-      } else if (meta.type === 'industry' || meta.type === 'industry-header') {
-        // Toggle industry expansion
-        toggleIndustry(meta.industry);
+      } else if (meta.type === 'industry') {
+        // Drill down to show tickers in this industry
+        setIndustryFilter(meta.industry);
       }
     }
   });
-}
-
-/**
- * Toggle industry expansion and re-render
- */
-function toggleIndustry(industryName) {
-  if (expandedIndustries.has(industryName)) {
-    expandedIndustries.delete(industryName);
-  } else {
-    expandedIndustries.add(industryName);
-  }
-
-  // Re-render with new expanded state
-  renderHeatmap(currentContracts);
 }
 
 /**
@@ -1059,25 +1049,6 @@ function renderScatter3D(contracts) {
 }
 
 /**
- * Expand all industries
- */
-export function expandAll() {
-  const hierarchicalData = buildHierarchicalData(currentContracts);
-  hierarchicalData.industries.forEach(ind => {
-    expandedIndustries.add(ind.name);
-  });
-  renderHeatmap(currentContracts);
-}
-
-/**
- * Collapse all industries
- */
-export function collapseAll() {
-  expandedIndustries.clear();
-  renderHeatmap(currentContracts);
-}
-
-/**
  * Show the chart section
  */
 export function showChart() {
@@ -1187,7 +1158,6 @@ export function getContractsForCell(ticker, expMonth) {
  * Reset chart state (call when starting new scan)
  */
 export function resetChartState() {
-  expandedIndustries.clear();
   currentContracts = [];
   contractMap = {};
   currentView = '2d';
@@ -1207,6 +1177,12 @@ export function resetChartState() {
   const industryFilter = document.getElementById('industryFilter');
   if (industryFilter) {
     industryFilter.value = 'all';
+  }
+
+  // Hide the "Back to All" button
+  const controls2d = document.getElementById('heatmap2dControls');
+  if (controls2d) {
+    controls2d.style.display = 'none';
   }
 }
 

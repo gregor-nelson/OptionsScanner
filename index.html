@@ -210,7 +210,7 @@
                   <!-- Options populated dynamically by JS -->
                 </select>
               </div>
-              <div class="heatmap-3d-control">
+              <div class="heatmap-3d-control" id="colorMetricControl">
                 <label for="colorMetric">Color</label>
                 <select id="colorMetric">
                   <option value="iv" selected>Avg IV</option>
@@ -233,15 +233,11 @@
               <div class="heatmap-loading-spinner"></div>
             </div>
 
-            <!-- Overlay Controls (2D only) -->
+            <!-- Overlay Controls (shown when viewing specific industry) -->
             <div class="view-options" id="heatmap2dControls">
-              <button class="view-btn" id="expandAllBtn">
-                <i class="ph ph-arrows-out-simple view-btn-icon"></i>
-                <span class="view-btn-label">Expand All</span>
-              </button>
-              <button class="view-btn" id="collapseAllBtn">
-                <i class="ph ph-arrows-in-simple view-btn-icon"></i>
-                <span class="view-btn-label">Collapse All</span>
+              <button class="view-btn" id="backToAllBtn">
+                <i class="ph ph-arrow-left view-btn-icon"></i>
+                <span class="view-btn-label">All Industries</span>
               </button>
             </div>
 
@@ -270,7 +266,7 @@
 
             <!-- Chart Hints -->
             <div class="chart-hint-overlay" id="chartHint">
-              <span>Click industry row to expand/collapse - Click ticker cell to view contracts</span>
+              <span>Click industry to drill down · Click ticker cell to view contracts</span>
             </div>
 
             <div class="chart-hint-3d" id="chartHint3d">
