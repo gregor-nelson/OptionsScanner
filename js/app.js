@@ -706,9 +706,6 @@ function displayResults(results) {
   // Store full results for secondary filtering
   fullResults = results;
 
-  // Populate secondary filter industry dropdown
-  populateSecondaryIndustryFilter(contracts);
-
   // Clear any existing secondary filters when new scan loads
   clearSecondaryFiltersUI();
 
@@ -872,12 +869,6 @@ function getSecondaryFilterValues() {
     return isNaN(num) ? null : num;
   };
 
-  // Get selected industries from multi-select
-  const industrySelect = document.getElementById('filterIndustry');
-  const selectedIndustries = industrySelect
-    ? Array.from(industrySelect.selectedOptions).map(o => o.value)
-    : [];
-
   // Get moneyness checkboxes
   const moneyness = [];
   if (document.getElementById('filterITM')?.checked) moneyness.push('ITM');
@@ -887,7 +878,6 @@ function getSecondaryFilterValues() {
   return {
     ticker: getValue('filterTicker'),
     company: getValue('filterCompany'),
-    industries: selectedIndustries,
     moneyness: moneyness,
     strikeMin: getNumValue('filterStrikeMin'),
     strikeMax: getNumValue('filterStrikeMax'),
@@ -914,11 +904,6 @@ function applySecondaryFilters(contracts, filters) {
       return false;
     }
     if (filters.company && !c._meta?.company?.toLowerCase().includes(filters.company.toLowerCase())) {
-      return false;
-    }
-
-    // Industry multi-select (OR logic - match any selected)
-    if (filters.industries.length > 0 && !filters.industries.includes(c._meta?.industry)) {
       return false;
     }
 
@@ -1110,12 +1095,6 @@ function clearSecondaryFiltersUI() {
     if (el) el.value = '';
   });
 
-  // Clear industry multi-select
-  const industrySelect = document.getElementById('filterIndustry');
-  if (industrySelect) {
-    Array.from(industrySelect.options).forEach(opt => opt.selected = false);
-  }
-
   // Reset moneyness checkboxes to all checked
   ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {
     const el = document.getElementById(id);
@@ -1130,30 +1109,6 @@ function clearSecondaryFilters() {
   clearSecondaryFiltersUI();
   // Re-apply filters (which will now show all results)
   applyAndDisplaySecondaryFilters();
-}
-
-/**
- * Populate the industry multi-select dropdown from results
- */
-function populateSecondaryIndustryFilter(contracts) {
-  const industrySelect = document.getElementById('filterIndustry');
-  if (!industrySelect) return;
-
-  // Get unique industries from contracts
-  const industries = new Set();
-  contracts.forEach(c => {
-    if (c._meta?.industry) {
-      industries.add(c._meta.industry);
-    }
-  });
-
-  // Sort alphabetically
-  const sortedIndustries = Array.from(industries).sort();
-
-  // Populate options
-  industrySelect.innerHTML = sortedIndustries.map(ind =>
-    `<option value="${ind}">${ind}</option>`
-  ).join('');
 }
 
 /**
@@ -1184,12 +1139,6 @@ function setupSecondaryFilters() {
       el.addEventListener('input', onSecondaryFilterChange);
     }
   });
-
-  // Industry multi-select
-  const industrySelect = document.getElementById('filterIndustry');
-  if (industrySelect) {
-    industrySelect.addEventListener('change', onSecondaryFilterChange);
-  }
 
   // Moneyness checkboxes
   ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {

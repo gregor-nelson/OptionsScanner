@@ -1766,8 +1766,8 @@ tbody tr:hover td {
    ============================================================================= */
 
 .secondary-filters {
-  padding: 12px 16px;
-  background: var(--bg-tertiary);
+  padding: 10px 16px;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -1778,102 +1778,34 @@ tbody tr:hover td {
 .secondary-filters-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-end;
 }
 
-.filter-group-inline {
-  display: flex;
-  flex-direction: column;
+/* Compact filter group variant for inline layout */
+.filter-group.compact {
   gap: 4px;
-  min-width: 0;
 }
 
-.filter-group-inline label {
+.filter-group.compact label {
   font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
-.filter-input-sm {
+.filter-group.compact input {
   padding: 6px 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: 'IBM Plex Mono', monospace;
-  color: var(--text);
-  width: 80px;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.filter-input-sm::placeholder {
-  color: var(--text-muted);
-}
-
-.filter-input-sm:hover {
-  border-color: var(--border-bright);
-}
-
-.filter-input-sm:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--bg-elevated);
-}
-
-/* Range inputs */
-.range-inputs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.range-sep {
-  color: var(--text-muted);
   font-size: 11px;
 }
 
-/* Multi-select dropdown */
-.filter-select-multi {
-  padding: 4px 6px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: 'IBM Plex Mono', monospace;
-  color: var(--text);
-  min-width: 140px;
-  max-width: 180px;
-  height: 54px;
-  transition: border-color 0.15s ease;
-}
-
-.filter-select-multi:hover {
-  border-color: var(--border-bright);
-}
-
-.filter-select-multi:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.filter-select-multi option {
-  padding: 4px 6px;
-  background: var(--bg-secondary);
-  color: var(--text);
-}
-
-.filter-select-multi option:checked {
-  background: var(--accent-dim);
-  color: var(--accent);
+.filter-group.compact .input-row input {
+  width: 65px;
+  min-width: 0;
 }
 
 /* Checkbox group */
 .checkbox-group {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  padding: 6px 0;
 }
 
 .checkbox-label {
@@ -1894,25 +1826,23 @@ tbody tr:hover td {
   cursor: pointer;
 }
 
-/* Filter actions */
-.filter-actions {
-  margin-left: auto;
-  align-self: flex-end;
-}
-
+/* Clear filters button */
 .clear-filters-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 11px;
+  font-weight: 500;
   font-family: inherit;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
+  margin-left: auto;
+  align-self: flex-end;
 }
 
 .clear-filters-btn:hover {
@@ -1937,27 +1867,17 @@ tbody tr:hover td {
 
 /* Responsive adjustments for secondary filters */
 @media (max-width: 1200px) {
-  .filter-input-sm {
-    width: 70px;
-  }
-
-  .filter-select-multi {
-    min-width: 120px;
-    max-width: 150px;
+  .filter-group.compact .input-row input {
+    width: 55px;
   }
 }
 
 @media (max-width: 900px) {
   .secondary-filters-row {
-    gap: 8px;
+    gap: 10px;
   }
 
-  .filter-input-sm {
-    width: 60px;
-  }
-
-  .filter-select-multi {
-    min-width: 100px;
-    max-width: 130px;
+  .filter-group.compact .input-row input {
+    width: 50px;
   }
 }
