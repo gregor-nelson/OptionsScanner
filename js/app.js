@@ -869,16 +869,9 @@ function getSecondaryFilterValues() {
     return isNaN(num) ? null : num;
   };
 
-  // Get moneyness checkboxes
-  const moneyness = [];
-  if (document.getElementById('filterITM')?.checked) moneyness.push('ITM');
-  if (document.getElementById('filterATM')?.checked) moneyness.push('ATM');
-  if (document.getElementById('filterOTM')?.checked) moneyness.push('OTM');
-
   return {
     ticker: getValue('filterTicker'),
     company: getValue('filterCompany'),
-    moneyness: moneyness,
     strikeMin: getNumValue('filterStrikeMin'),
     strikeMax: getNumValue('filterStrikeMax'),
     dteMin: getNumValue('filterDTEMin'),
@@ -905,13 +898,6 @@ function applySecondaryFilters(contracts, filters) {
     }
     if (filters.company && !c._meta?.company?.toLowerCase().includes(filters.company.toLowerCase())) {
       return false;
-    }
-
-    // Moneyness checkboxes (OR logic)
-    if (filters.moneyness.length > 0 && filters.moneyness.length < 3) {
-      if (!filters.moneyness.includes(c.moneyness)) {
-        return false;
-      }
     }
 
     // Range filters
@@ -995,6 +981,9 @@ function applyAndDisplaySecondaryFilters() {
 
   // Update the display
   displayFilteredResults(filteredResults, fullResults.contracts.length);
+
+  // Update active filter count badge
+  updateActiveFilterCount();
 }
 
 /**
@@ -1094,12 +1083,6 @@ function clearSecondaryFiltersUI() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-
-  // Reset moneyness checkboxes to all checked
-  ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = true;
-  });
 }
 
 /**
@@ -1140,18 +1123,51 @@ function setupSecondaryFilters() {
     }
   });
 
-  // Moneyness checkboxes
-  ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('change', onSecondaryFilterChange);
-    }
-  });
-
   // Clear filters button
   const clearBtn = document.getElementById('clearSecondaryFilters');
   if (clearBtn) {
     clearBtn.addEventListener('click', clearSecondaryFilters);
+  }
+
+  // Toggle collapse/expand
+  const toggleBtn = document.getElementById('toggleSecondaryFilters');
+  const filtersContainer = document.getElementById('secondaryFilters');
+  if (toggleBtn && filtersContainer) {
+    toggleBtn.addEventListener('click', () => {
+      filtersContainer.classList.toggle('collapsed');
+    });
+  }
+}
+
+/**
+ * Update active filter count badge
+ */
+function updateActiveFilterCount() {
+  const filters = getSecondaryFilterValues();
+  let count = 0;
+
+  // Count active text filters
+  if (filters.ticker) count++;
+  if (filters.company) count++;
+
+  // Count active range filters
+  if (filters.strikeMin != null || filters.strikeMax != null) count++;
+  if (filters.dteMin != null || filters.dteMax != null) count++;
+  if (filters.ivMin != null || filters.ivMax != null) count++;
+  if (filters.bidMin != null || filters.bidMax != null) count++;
+  if (filters.deltaMin != null || filters.deltaMax != null) count++;
+  if (filters.volumeMin != null) count++;
+  if (filters.oiMin != null) count++;
+
+  // Update badge
+  const badge = document.getElementById('filterActiveCount');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = `${count} active`;
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
   }
 }
 

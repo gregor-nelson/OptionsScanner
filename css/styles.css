@@ -1766,93 +1766,137 @@ tbody tr:hover td {
    ============================================================================= */
 
 .secondary-filters {
-  padding: 10px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   flex-shrink: 0;
+}
+
+/* Header with toggle */
+.secondary-filters-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.secondary-filters-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.secondary-filters-toggle:hover {
+  color: var(--text);
+}
+
+.secondary-filters-toggle i:first-child {
+  font-size: 14px;
+}
+
+.secondary-filters-toggle .toggle-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.secondary-filters.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+/* Active filter count badge */
+.filter-active-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 2px 6px;
+  background: var(--accent-dim);
+  border-radius: 10px;
+  display: none;
+}
+
+.filter-active-count.visible {
+  display: inline-block;
+}
+
+/* Collapsible body */
+.secondary-filters-body {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+  transition: max-height 0.2s ease, padding 0.2s ease, opacity 0.2s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.secondary-filters.collapsed .secondary-filters-body {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  border-top-color: transparent;
 }
 
 .secondary-filters-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
   align-items: flex-end;
 }
 
-/* Compact filter group variant for inline layout */
+/* Compact filter group variant */
 .filter-group.compact {
-  gap: 4px;
+  gap: 2px;
 }
 
 .filter-group.compact label {
-  font-size: 10px;
+  font-size: 9px;
+  margin-bottom: 1px;
 }
 
 .filter-group.compact input {
-  padding: 6px 8px;
+  padding: 4px 6px;
   font-size: 11px;
 }
 
 .filter-group.compact .input-row input {
-  width: 65px;
+  width: 52px;
   min-width: 0;
-}
-
-/* Checkbox group */
-.checkbox-group {
-  display: flex;
-  gap: 10px;
-  padding: 6px 0;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
 }
 
 /* Clear filters button */
 .clear-filters-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--bg-tertiary);
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 10px;
   font-weight: 500;
   font-family: inherit;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
   margin-left: auto;
-  align-self: flex-end;
 }
 
 .clear-filters-btn:hover {
-  background: var(--bg-elevated);
+  background: var(--bg-tertiary);
   border-color: var(--border-bright);
-  color: var(--text);
+  color: var(--text-secondary);
 }
 
 .clear-filters-btn i {
-  font-size: 12px;
+  font-size: 10px;
 }
 
 /* Company column styling */
@@ -1868,16 +1912,16 @@ tbody tr:hover td {
 /* Responsive adjustments for secondary filters */
 @media (max-width: 1200px) {
   .filter-group.compact .input-row input {
-    width: 55px;
+    width: 48px;
   }
 }
 
 @media (max-width: 900px) {
   .secondary-filters-row {
-    gap: 10px;
+    gap: 8px;
   }
 
   .filter-group.compact .input-row input {
-    width: 50px;
+    width: 44px;
   }
 }

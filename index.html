@@ -306,76 +306,76 @@
 
             <!-- Secondary Filters (Post-Scan) -->
             <div class="secondary-filters" id="secondaryFilters">
-              <div class="secondary-filters-row">
-                <div class="filter-group compact">
-                  <label>Ticker</label>
-                  <input type="text" id="filterTicker" placeholder="Search...">
-                </div>
-                <div class="filter-group compact">
-                  <label>Company</label>
-                  <input type="text" id="filterCompany" placeholder="Search...">
-                </div>
-                <div class="filter-group compact">
-                  <label>Strike</label>
-                  <div class="input-row">
-                    <input type="number" id="filterStrikeMin" placeholder="Min">
-                    <span class="separator">-</span>
-                    <input type="number" id="filterStrikeMax" placeholder="Max">
-                  </div>
-                </div>
-                <div class="filter-group compact">
-                  <label>DTE</label>
-                  <div class="input-row">
-                    <input type="number" id="filterDTEMin" placeholder="Min">
-                    <span class="separator">-</span>
-                    <input type="number" id="filterDTEMax" placeholder="Max">
-                  </div>
-                </div>
-                <div class="filter-group compact">
-                  <label>IV %</label>
-                  <div class="input-row">
-                    <input type="number" id="filterIVMin" placeholder="Min" step="1">
-                    <span class="separator">-</span>
-                    <input type="number" id="filterIVMax" placeholder="Max" step="1">
-                  </div>
-                </div>
-              </div>
-              <div class="secondary-filters-row">
-                <div class="filter-group compact">
-                  <label>Bid</label>
-                  <div class="input-row">
-                    <input type="number" id="filterBidMin" placeholder="Min" step="0.01">
-                    <span class="separator">-</span>
-                    <input type="number" id="filterBidMax" placeholder="Max" step="0.01">
-                  </div>
-                </div>
-                <div class="filter-group compact">
-                  <label>Delta</label>
-                  <div class="input-row">
-                    <input type="number" id="filterDeltaMin" placeholder="Min" step="0.01" min="0" max="1">
-                    <span class="separator">-</span>
-                    <input type="number" id="filterDeltaMax" placeholder="Max" step="0.01" min="0" max="1">
-                  </div>
-                </div>
-                <div class="filter-group compact">
-                  <label>Volume</label>
-                  <input type="number" id="filterVolumeMin" placeholder="Min">
-                </div>
-                <div class="filter-group compact">
-                  <label>Open Interest</label>
-                  <input type="number" id="filterOIMin" placeholder="Min">
-                </div>
-                <div class="filter-group compact">
-                  <label>Moneyness</label>
-                  <div class="checkbox-group">
-                    <label class="checkbox-label"><input type="checkbox" id="filterITM" value="ITM" checked> ITM</label>
-                    <label class="checkbox-label"><input type="checkbox" id="filterATM" value="ATM" checked> ATM</label>
-                    <label class="checkbox-label"><input type="checkbox" id="filterOTM" value="OTM" checked> OTM</label>
-                  </div>
-                </div>
+              <div class="secondary-filters-header">
+                <button class="secondary-filters-toggle" id="toggleSecondaryFilters">
+                  <i class="ph ph-funnel"></i>
+                  <span>Table Filters</span>
+                  <i class="ph ph-caret-down toggle-icon"></i>
+                </button>
+                <span class="filter-active-count" id="filterActiveCount"></span>
                 <button id="clearSecondaryFilters" class="clear-filters-btn">
                   <i class="ph ph-x"></i> Clear
                 </button>
+              </div>
+              <div class="secondary-filters-body" id="secondaryFiltersBody">
+                <div class="secondary-filters-row">
+                  <div class="filter-group compact">
+                    <label>Ticker</label>
+                    <input type="text" id="filterTicker" placeholder="Search">
+                  </div>
+                  <div class="filter-group compact">
+                    <label>Company</label>
+                    <input type="text" id="filterCompany" placeholder="Search">
+                  </div>
+                  <div class="filter-group compact">
+                    <label>Strike</label>
+                    <div class="input-row">
+                      <input type="number" id="filterStrikeMin" placeholder="Min">
+                      <span class="separator">-</span>
+                      <input type="number" id="filterStrikeMax" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-group compact">
+                    <label>DTE</label>
+                    <div class="input-row">
+                      <input type="number" id="filterDTEMin" placeholder="Min">
+                      <span class="separator">-</span>
+                      <input type="number" id="filterDTEMax" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-group compact">
+                    <label>IV %</label>
+                    <div class="input-row">
+                      <input type="number" id="filterIVMin" placeholder="Min" step="1">
+                      <span class="separator">-</span>
+                      <input type="number" id="filterIVMax" placeholder="Max" step="1">
+                    </div>
+                  </div>
+                  <div class="filter-group compact">
+                    <label>Bid</label>
+                    <div class="input-row">
+                      <input type="number" id="filterBidMin" placeholder="Min" step="0.01">
+                      <span class="separator">-</span>
+                      <input type="number" id="filterBidMax" placeholder="Max" step="0.01">
+                    </div>
+                  </div>
+                  <div class="filter-group compact">
+                    <label>Delta</label>
+                    <div class="input-row">
+                      <input type="number" id="filterDeltaMin" placeholder="Min" step="0.01">
+                      <span class="separator">-</span>
+                      <input type="number" id="filterDeltaMax" placeholder="Max" step="0.01">
+                    </div>
+                  </div>
+                  <div class="filter-group compact">
+                    <label>Vol</label>
+                    <input type="number" id="filterVolumeMin" placeholder="Min">
+                  </div>
+                  <div class="filter-group compact">
+                    <label>OI</label>
+                    <input type="number" id="filterOIMin" placeholder="Min">
+                  </div>
+                </div>
               </div>
             </div>
 
