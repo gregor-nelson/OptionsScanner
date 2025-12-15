@@ -18,6 +18,10 @@ let currentOptionType = 'calls'; // 'calls' or 'puts'
 let activeTab = 'heatmap';
 let forceRefresh = false; // Skip cache when true
 
+// Secondary filter state (post-scan filtering)
+let fullResults = null; // Store unfiltered results
+let secondaryFilterDebounceTimer = null;
+
 // Tab configuration - easy to extend with new tabs
 const TAB_CONFIG = [
   {
@@ -187,6 +191,9 @@ function setupEventListeners() {
 
   // Set up mobile sidebar toggles
   setupMobileSidebars();
+
+  // Set up secondary filters (post-scan)
+  setupSecondaryFilters();
 }
 
 /**
@@ -696,6 +703,15 @@ function showError(message) {
 function displayResults(results) {
   const { contracts, stats } = results;
 
+  // Store full results for secondary filtering
+  fullResults = results;
+
+  // Populate secondary filter industry dropdown
+  populateSecondaryIndustryFilter(contracts);
+
+  // Clear any existing secondary filters when new scan loads
+  clearSecondaryFiltersUI();
+
   // Render heatmap visualization
   if (contracts.length > 0) {
     renderHeatmap(contracts);
@@ -731,7 +747,7 @@ function displayResults(results) {
   if (!tbody) return;
 
   if (contracts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="no-results">No contracts match your filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="no-results">No contracts match your filters</td></tr>';
     return;
   }
 
@@ -741,7 +757,8 @@ function displayResults(results) {
   tbody.innerHTML = displayContracts.map(c => `
     <tr>
       <td class="ticker">${c.underlying}</td>
-      <td class="industry">${c._meta.industry || '-'}</td>
+      <td class="company">${c._meta?.company || '-'}</td>
+      <td class="industry">${c._meta?.industry || '-'}</td>
       <td class="strike">${c.strike != null ? c.strike.toFixed(2) : '-'}</td>
       <td class="expiration">${formatDate(c.expiration)}</td>
       <td class="dte">${c.dte != null ? c.dte : '-'}</td>
@@ -758,7 +775,7 @@ function displayResults(results) {
   // Show truncation warning if needed
   if (contracts.length > 500) {
     const warning = document.createElement('tr');
-    warning.innerHTML = `<td colspan="12" class="truncated">Showing first 500 of ${contracts.length} results</td>`;
+    warning.innerHTML = `<td colspan="13" class="truncated">Showing first 500 of ${contracts.length} results</td>`;
     tbody.appendChild(warning);
   }
 
@@ -833,44 +850,415 @@ function updateDashboardStats(contracts, stats) {
   }
 }
 
+// =============================================================================
+// Secondary Filter Functions (Post-Scan Filtering)
+// =============================================================================
+
+/**
+ * Get current secondary filter values from the UI
+ */
+function getSecondaryFilterValues() {
+  const getValue = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const val = el.value.trim();
+    return val === '' ? null : val;
+  };
+
+  const getNumValue = (id) => {
+    const val = getValue(id);
+    if (val === null) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  // Get selected industries from multi-select
+  const industrySelect = document.getElementById('filterIndustry');
+  const selectedIndustries = industrySelect
+    ? Array.from(industrySelect.selectedOptions).map(o => o.value)
+    : [];
+
+  // Get moneyness checkboxes
+  const moneyness = [];
+  if (document.getElementById('filterITM')?.checked) moneyness.push('ITM');
+  if (document.getElementById('filterATM')?.checked) moneyness.push('ATM');
+  if (document.getElementById('filterOTM')?.checked) moneyness.push('OTM');
+
+  return {
+    ticker: getValue('filterTicker'),
+    company: getValue('filterCompany'),
+    industries: selectedIndustries,
+    moneyness: moneyness,
+    strikeMin: getNumValue('filterStrikeMin'),
+    strikeMax: getNumValue('filterStrikeMax'),
+    dteMin: getNumValue('filterDTEMin'),
+    dteMax: getNumValue('filterDTEMax'),
+    ivMin: getNumValue('filterIVMin'),
+    ivMax: getNumValue('filterIVMax'),
+    bidMin: getNumValue('filterBidMin'),
+    bidMax: getNumValue('filterBidMax'),
+    deltaMin: getNumValue('filterDeltaMin'),
+    deltaMax: getNumValue('filterDeltaMax'),
+    volumeMin: getNumValue('filterVolumeMin'),
+    oiMin: getNumValue('filterOIMin')
+  };
+}
+
+/**
+ * Apply secondary filters to the full results
+ */
+function applySecondaryFilters(contracts, filters) {
+  return contracts.filter(c => {
+    // Text filters (case-insensitive includes)
+    if (filters.ticker && !c.underlying?.toLowerCase().includes(filters.ticker.toLowerCase())) {
+      return false;
+    }
+    if (filters.company && !c._meta?.company?.toLowerCase().includes(filters.company.toLowerCase())) {
+      return false;
+    }
+
+    // Industry multi-select (OR logic - match any selected)
+    if (filters.industries.length > 0 && !filters.industries.includes(c._meta?.industry)) {
+      return false;
+    }
+
+    // Moneyness checkboxes (OR logic)
+    if (filters.moneyness.length > 0 && filters.moneyness.length < 3) {
+      if (!filters.moneyness.includes(c.moneyness)) {
+        return false;
+      }
+    }
+
+    // Range filters
+    if (filters.strikeMin != null && (c.strike == null || c.strike < filters.strikeMin)) {
+      return false;
+    }
+    if (filters.strikeMax != null && (c.strike == null || c.strike > filters.strikeMax)) {
+      return false;
+    }
+
+    if (filters.dteMin != null && (c.dte == null || c.dte < filters.dteMin)) {
+      return false;
+    }
+    if (filters.dteMax != null && (c.dte == null || c.dte > filters.dteMax)) {
+      return false;
+    }
+
+    // IV filters (convert from percentage input to decimal)
+    if (filters.ivMin != null && (c.iv == null || c.iv * 100 < filters.ivMin)) {
+      return false;
+    }
+    if (filters.ivMax != null && (c.iv == null || c.iv * 100 > filters.ivMax)) {
+      return false;
+    }
+
+    if (filters.bidMin != null && (c.bid == null || c.bid < filters.bidMin)) {
+      return false;
+    }
+    if (filters.bidMax != null && (c.bid == null || c.bid > filters.bidMax)) {
+      return false;
+    }
+
+    if (filters.deltaMin != null && (c.delta == null || Math.abs(c.delta) < filters.deltaMin)) {
+      return false;
+    }
+    if (filters.deltaMax != null && (c.delta == null || Math.abs(c.delta) > filters.deltaMax)) {
+      return false;
+    }
+
+    // Min-only filters
+    if (filters.volumeMin != null && (c.volume == null || c.volume < filters.volumeMin)) {
+      return false;
+    }
+    if (filters.oiMin != null && (c.openInterest == null || c.openInterest < filters.oiMin)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Handle secondary filter changes with debounce
+ */
+function onSecondaryFilterChange() {
+  // Clear any existing debounce timer
+  if (secondaryFilterDebounceTimer) {
+    clearTimeout(secondaryFilterDebounceTimer);
+  }
+
+  // Debounce the filter application
+  secondaryFilterDebounceTimer = setTimeout(() => {
+    applyAndDisplaySecondaryFilters();
+  }, 300);
+}
+
+/**
+ * Apply secondary filters and update the display
+ */
+function applyAndDisplaySecondaryFilters() {
+  if (!fullResults || !fullResults.contracts) return;
+
+  const filters = getSecondaryFilterValues();
+  const filteredContracts = applySecondaryFilters(fullResults.contracts, filters);
+
+  // Create a new results object with filtered contracts
+  const filteredResults = {
+    ...fullResults,
+    contracts: filteredContracts
+  };
+
+  // Update the display
+  displayFilteredResults(filteredResults, fullResults.contracts.length);
+}
+
+/**
+ * Display filtered results (similar to displayResults but shows filter count)
+ */
+function displayFilteredResults(results, totalCount) {
+  const { contracts, stats } = results;
+
+  // Update tab badge with filtered contract count
+  updateTabBadge('contracts', contracts.length);
+
+  // Build table body
+  const tbody = document.getElementById('resultsBody');
+  if (!tbody) return;
+
+  if (contracts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="13" class="no-results">No contracts match your filters</td></tr>';
+    updateResultsInfo(0, totalCount);
+    return;
+  }
+
+  // Limit display for performance
+  const displayContracts = contracts.slice(0, 500);
+
+  tbody.innerHTML = displayContracts.map(c => `
+    <tr>
+      <td class="ticker">${c.underlying}</td>
+      <td class="company">${c._meta?.company || '-'}</td>
+      <td class="industry">${c._meta?.industry || '-'}</td>
+      <td class="strike">${c.strike != null ? c.strike.toFixed(2) : '-'}</td>
+      <td class="expiration">${formatDate(c.expiration)}</td>
+      <td class="dte">${c.dte != null ? c.dte : '-'}</td>
+      <td class="bid">${formatCurrency(c.bid)}</td>
+      <td class="ask">${formatCurrency(c.ask)}</td>
+      <td class="last">${formatCurrency(c.last)}</td>
+      <td class="iv">${formatPercent(c.iv)}</td>
+      <td class="delta">${c.delta != null ? c.delta.toFixed(3) : '-'}</td>
+      <td class="volume">${formatNumber(c.volume)}</td>
+      <td class="oi">${formatNumber(c.openInterest)}</td>
+    </tr>
+  `).join('');
+
+  // Show truncation warning if needed
+  if (contracts.length > 500) {
+    const warning = document.createElement('tr');
+    warning.innerHTML = `<td colspan="13" class="truncated">Showing first 500 of ${contracts.length} filtered results</td>`;
+    tbody.appendChild(warning);
+  }
+
+  // Update results info with filter count
+  updateResultsInfo(contracts.length, totalCount);
+}
+
+/**
+ * Update results info text
+ */
+function updateResultsInfo(filteredCount, totalCount) {
+  const resultsShowing = document.getElementById('resultsShowing');
+  if (resultsShowing) {
+    if (filteredCount === totalCount) {
+      if (totalCount > 500) {
+        resultsShowing.textContent = `Showing 500 of ${totalCount} results`;
+      } else {
+        resultsShowing.textContent = `Showing ${totalCount} results`;
+      }
+    } else {
+      if (filteredCount > 500) {
+        resultsShowing.textContent = `Showing 500 of ${filteredCount} filtered (${totalCount} total)`;
+      } else {
+        resultsShowing.textContent = `Showing ${filteredCount} of ${totalCount} results`;
+      }
+    }
+  }
+}
+
+/**
+ * Clear secondary filter UI elements (without triggering re-filter)
+ */
+function clearSecondaryFiltersUI() {
+  // Clear text inputs
+  const textInputs = ['filterTicker', 'filterCompany'];
+  textInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Clear number inputs
+  const numInputs = [
+    'filterStrikeMin', 'filterStrikeMax',
+    'filterDTEMin', 'filterDTEMax',
+    'filterIVMin', 'filterIVMax',
+    'filterBidMin', 'filterBidMax',
+    'filterDeltaMin', 'filterDeltaMax',
+    'filterVolumeMin', 'filterOIMin'
+  ];
+  numInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Clear industry multi-select
+  const industrySelect = document.getElementById('filterIndustry');
+  if (industrySelect) {
+    Array.from(industrySelect.options).forEach(opt => opt.selected = false);
+  }
+
+  // Reset moneyness checkboxes to all checked
+  ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = true;
+  });
+}
+
+/**
+ * Clear all secondary filters and re-apply
+ */
+function clearSecondaryFilters() {
+  clearSecondaryFiltersUI();
+  // Re-apply filters (which will now show all results)
+  applyAndDisplaySecondaryFilters();
+}
+
+/**
+ * Populate the industry multi-select dropdown from results
+ */
+function populateSecondaryIndustryFilter(contracts) {
+  const industrySelect = document.getElementById('filterIndustry');
+  if (!industrySelect) return;
+
+  // Get unique industries from contracts
+  const industries = new Set();
+  contracts.forEach(c => {
+    if (c._meta?.industry) {
+      industries.add(c._meta.industry);
+    }
+  });
+
+  // Sort alphabetically
+  const sortedIndustries = Array.from(industries).sort();
+
+  // Populate options
+  industrySelect.innerHTML = sortedIndustries.map(ind =>
+    `<option value="${ind}">${ind}</option>`
+  ).join('');
+}
+
+/**
+ * Set up event listeners for secondary filters
+ */
+function setupSecondaryFilters() {
+  // Text inputs
+  const textInputs = ['filterTicker', 'filterCompany'];
+  textInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', onSecondaryFilterChange);
+    }
+  });
+
+  // Number inputs
+  const numInputs = [
+    'filterStrikeMin', 'filterStrikeMax',
+    'filterDTEMin', 'filterDTEMax',
+    'filterIVMin', 'filterIVMax',
+    'filterBidMin', 'filterBidMax',
+    'filterDeltaMin', 'filterDeltaMax',
+    'filterVolumeMin', 'filterOIMin'
+  ];
+  numInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', onSecondaryFilterChange);
+    }
+  });
+
+  // Industry multi-select
+  const industrySelect = document.getElementById('filterIndustry');
+  if (industrySelect) {
+    industrySelect.addEventListener('change', onSecondaryFilterChange);
+  }
+
+  // Moneyness checkboxes
+  ['filterITM', 'filterATM', 'filterOTM'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', onSecondaryFilterChange);
+    }
+  });
+
+  // Clear filters button
+  const clearBtn = document.getElementById('clearSecondaryFilters');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearSecondaryFilters);
+  }
+}
+
 /**
  * Sort results by field
  */
 function sortResults(field) {
-  if (!currentResults || !currentResults.contracts) return;
-  
+  if (!fullResults || !fullResults.contracts) return;
+
   // Determine sort direction (toggle if same field)
-  const currentSort = currentResults.params?.sortBy;
-  const currentDir = currentResults.params?.sortDir || 'asc';
-  
+  const currentSort = fullResults.params?.sortBy;
+  const currentDir = fullResults.params?.sortDir || 'asc';
+
   let newDir = 'asc';
   if (field === currentSort) {
     newDir = currentDir === 'asc' ? 'desc' : 'asc';
   }
-  
-  // Sort
-  currentResults.contracts.sort((a, b) => {
-    let aVal = a[field];
-    let bVal = b[field];
-    
+
+  // Helper to get nested field value (e.g., "_meta.company")
+  const getFieldValue = (obj, fieldPath) => {
+    return fieldPath.split('.').reduce((o, k) => o?.[k], obj);
+  };
+
+  // Sort fullResults
+  fullResults.contracts.sort((a, b) => {
+    let aVal = getFieldValue(a, field);
+    let bVal = getFieldValue(b, field);
+
     if (aVal == null && bVal == null) return 0;
     if (aVal == null) return 1;
     if (bVal == null) return -1;
-    
+
+    // String comparison for text fields
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      const cmp = aVal.localeCompare(bVal);
+      return newDir === 'asc' ? cmp : -cmp;
+    }
+
     if (newDir === 'asc') {
       return aVal - bVal;
     } else {
       return bVal - aVal;
     }
   });
-  
+
   // Update params
-  currentResults.params.sortBy = field;
-  currentResults.params.sortDir = newDir;
-  
-  // Re-display
-  displayResults(currentResults);
-  
+  if (!fullResults.params) fullResults.params = {};
+  fullResults.params.sortBy = field;
+  fullResults.params.sortDir = newDir;
+
+  // Also update currentResults reference
+  currentResults = fullResults;
+
+  // Re-apply secondary filters and display
+  applyAndDisplaySecondaryFilters();
+
   // Update header indicators
   updateSortIndicators(field, newDir);
 }

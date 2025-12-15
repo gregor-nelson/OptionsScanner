@@ -303,11 +303,98 @@
                 <span id="resultsShowing">Showing 0 results</span>
               </div>
             </div>
+
+            <!-- Secondary Filters (Post-Scan) -->
+            <div class="secondary-filters" id="secondaryFilters">
+              <div class="secondary-filters-row">
+                <div class="filter-group-inline">
+                  <label>Ticker</label>
+                  <input type="text" id="filterTicker" placeholder="Search..." class="filter-input-sm">
+                </div>
+                <div class="filter-group-inline">
+                  <label>Company</label>
+                  <input type="text" id="filterCompany" placeholder="Search..." class="filter-input-sm">
+                </div>
+                <div class="filter-group-inline">
+                  <label>Industry</label>
+                  <select id="filterIndustry" multiple class="filter-select-multi">
+                    <!-- Populated by JS -->
+                  </select>
+                </div>
+                <div class="filter-group-inline">
+                  <label>Moneyness</label>
+                  <div class="checkbox-group">
+                    <label class="checkbox-label"><input type="checkbox" id="filterITM" value="ITM" checked> ITM</label>
+                    <label class="checkbox-label"><input type="checkbox" id="filterATM" value="ATM" checked> ATM</label>
+                    <label class="checkbox-label"><input type="checkbox" id="filterOTM" value="OTM" checked> OTM</label>
+                  </div>
+                </div>
+              </div>
+              <div class="secondary-filters-row">
+                <div class="filter-group-inline">
+                  <label>Strike</label>
+                  <div class="range-inputs">
+                    <input type="number" id="filterStrikeMin" placeholder="Min" class="filter-input-sm">
+                    <span class="range-sep">-</span>
+                    <input type="number" id="filterStrikeMax" placeholder="Max" class="filter-input-sm">
+                  </div>
+                </div>
+                <div class="filter-group-inline">
+                  <label>DTE</label>
+                  <div class="range-inputs">
+                    <input type="number" id="filterDTEMin" placeholder="Min" class="filter-input-sm">
+                    <span class="range-sep">-</span>
+                    <input type="number" id="filterDTEMax" placeholder="Max" class="filter-input-sm">
+                  </div>
+                </div>
+                <div class="filter-group-inline">
+                  <label>IV %</label>
+                  <div class="range-inputs">
+                    <input type="number" id="filterIVMin" placeholder="Min" class="filter-input-sm" step="1">
+                    <span class="range-sep">-</span>
+                    <input type="number" id="filterIVMax" placeholder="Max" class="filter-input-sm" step="1">
+                  </div>
+                </div>
+                <div class="filter-group-inline">
+                  <label>Bid</label>
+                  <div class="range-inputs">
+                    <input type="number" id="filterBidMin" placeholder="Min" class="filter-input-sm" step="0.01">
+                    <span class="range-sep">-</span>
+                    <input type="number" id="filterBidMax" placeholder="Max" class="filter-input-sm" step="0.01">
+                  </div>
+                </div>
+              </div>
+              <div class="secondary-filters-row">
+                <div class="filter-group-inline">
+                  <label>Delta</label>
+                  <div class="range-inputs">
+                    <input type="number" id="filterDeltaMin" placeholder="Min" class="filter-input-sm" step="0.01" min="0" max="1">
+                    <span class="range-sep">-</span>
+                    <input type="number" id="filterDeltaMax" placeholder="Max" class="filter-input-sm" step="0.01" min="0" max="1">
+                  </div>
+                </div>
+                <div class="filter-group-inline">
+                  <label>Volume</label>
+                  <input type="number" id="filterVolumeMin" placeholder="Min" class="filter-input-sm">
+                </div>
+                <div class="filter-group-inline">
+                  <label>Open Interest</label>
+                  <input type="number" id="filterOIMin" placeholder="Min" class="filter-input-sm">
+                </div>
+                <div class="filter-group-inline filter-actions">
+                  <button id="clearSecondaryFilters" class="clear-filters-btn">
+                    <i class="ph ph-x"></i> Clear Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="table-container">
               <table id="resultsTable">
                 <thead>
                   <tr>
                     <th class="sortable" data-field="underlying">Ticker</th>
+                    <th class="sortable" data-field="_meta.company">Company</th>
                     <th>Industry</th>
                     <th class="sortable" data-field="strike">Strike</th>
                     <th class="sortable" data-field="expiration">Exp</th>
@@ -323,7 +410,7 @@
                 </thead>
                 <tbody id="resultsBody">
                   <tr>
-                    <td colspan="12" class="placeholder">Configure filters and click Scan to search</td>
+                    <td colspan="13" class="placeholder">Configure filters and click Scan to search</td>
                   </tr>
                 </tbody>
               </table>

@@ -1760,3 +1760,204 @@ tbody tr:hover td {
 .bg-negative { background: var(--negative-dim); }
 .bg-neutral { background: var(--neutral-dim); }
 .bg-accent { background: var(--accent-dim); }
+
+/* =============================================================================
+   Secondary Filters (Post-Scan Filtering)
+   ============================================================================= */
+
+.secondary-filters {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.secondary-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-group-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filter-group-inline label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filter-input-sm {
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+  width: 80px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.filter-input-sm::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-input-sm:hover {
+  border-color: var(--border-bright);
+}
+
+.filter-input-sm:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+/* Range inputs */
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.range-sep {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Multi-select dropdown */
+.filter-select-multi {
+  padding: 4px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+  min-width: 140px;
+  max-width: 180px;
+  height: 54px;
+  transition: border-color 0.15s ease;
+}
+
+.filter-select-multi:hover {
+  border-color: var(--border-bright);
+}
+
+.filter-select-multi:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filter-select-multi option {
+  padding: 4px 6px;
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+.filter-select-multi option:checked {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Checkbox group */
+.checkbox-group {
+  display: flex;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Filter actions */
+.filter-actions {
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+.clear-filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clear-filters-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+
+.clear-filters-btn i {
+  font-size: 12px;
+}
+
+/* Company column styling */
+.company {
+  color: var(--text-secondary);
+  font-size: 11px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments for secondary filters */
+@media (max-width: 1200px) {
+  .filter-input-sm {
+    width: 70px;
+  }
+
+  .filter-select-multi {
+    min-width: 120px;
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 900px) {
+  .secondary-filters-row {
+    gap: 8px;
+  }
+
+  .filter-input-sm {
+    width: 60px;
+  }
+
+  .filter-select-multi {
+    min-width: 100px;
+    max-width: 130px;
+  }
+}
