@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="css/volume.css">
   <link rel="stylesheet" href="css/heatmap3d.css">
   <link rel="stylesheet" href="css/mobile.css">
-  <link rel="stylesheet" href="css/table-colors.css">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -115,11 +114,11 @@
       </div>
 
       <div class="filters-content">
-        <!-- Test Ticker -->
+        <!-- Single Ticker Override -->
         <div class="filter-group">
-          <label>Test Ticker</label>
+          <label>Single Ticker <span class="label-hint">(optional)</span></label>
           <input type="text" id="testTicker" placeholder="e.g. XOM" style="text-transform: uppercase;">
-          <small class="hint">Leave empty for all</small>
+          <small class="hint">Scan one ticker instead of full universe</small>
         </div>
 
         <!-- Price Range -->

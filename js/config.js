@@ -21,16 +21,16 @@ export const CONFIG = {
   // Default scan parameters
   DEFAULTS: {
     CONTRACT_TYPE: 'call',
-    EXPIRATION_GTE: '2026-01-01',
+    EXPIRATION_GTE: '2027-01-01',
     EXPIRATION_LTE: null,     // No upper bound by default
     PRICE_MIN: 0.05,
     PRICE_MAX: 0.25,
     PRICE_FIELD: 'last',      // 'ask', 'bid', 'last', 'mid' - use 'last' as illiquid options often lack quotes
     DELTA_MIN: 0,
-    DELTA_MAX: 0.40,
+    DELTA_MAX: 1.0,
     IV_MIN: 0,
     IV_MAX: 1.0,              // 100%
-    MIN_OPEN_INTEREST: 50,
+    MIN_OPEN_INTEREST: 0,
     MIN_VOLUME: 0,
     SORT_BY: 'ask',
     SORT_DIR: 'asc'
