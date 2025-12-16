@@ -1,6 +1,8 @@
 /**
  * Main Application - Wires together all modules and handles UI
  * Dashboard Layout Version
+ * 
+ * REFACTORED: Table logic extracted to table.js module
  */
 
 import { ApiClient } from './api.js';
@@ -10,6 +12,14 @@ import { formatCurrency, formatPercent, formatDate, formatNumber } from './utils
 import { renderHeatmap, hideChart, resetChartState, resizeChart, initViewTabs, init3dChart, populateIndustryDropdown, setIndustryFilter } from './chart.js';
 import { cacheManager } from './cache.js';
 import { renderVolumeChart, refreshVolumeChart, setupVolumeControls, resizeVolumeChart, renderIndustryLegend } from './volume.js';
+import { 
+  renderTable, 
+  setupTableControls, 
+  exportTableToCSV, 
+  getVisibleContracts,
+  clearFilters as clearTableFilters,
+  resetTable 
+} from './table.js';
 
 // Global state
 let scanner = null;
@@ -17,10 +27,6 @@ let currentResults = null;
 let currentOptionType = 'calls'; // 'calls' or 'puts'
 let activeTab = 'heatmap';
 let forceRefresh = false; // Skip cache when true
-
-// Secondary filter state (post-scan filtering)
-let fullResults = null; // Store unfiltered results
-let secondaryFilterDebounceTimer = null;
 
 // Tab configuration - easy to extend with new tabs
 const TAB_CONFIG = [
@@ -122,23 +128,13 @@ function setupEventListeners() {
   }
 
   // Enter key in inputs triggers scan
-  const inputs = document.querySelectorAll('input');
+  const inputs = document.querySelectorAll('.filters-sidebar input');
   inputs.forEach(input => {
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         runScan();
       }
     });
-  });
-
-  // Sort headers
-  document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('sortable')) {
-      const field = e.target.dataset.field;
-      if (field) {
-        sortResults(field);
-      }
-    }
   });
 
   // Back to All Industries button
@@ -192,8 +188,17 @@ function setupEventListeners() {
   // Set up mobile sidebar toggles
   setupMobileSidebars();
 
-  // Set up secondary filters (post-scan)
-  setupSecondaryFilters();
+  // Set up table controls with callbacks
+  setupTableControls({
+    onFilterChange: (count, contracts) => {
+      // Update tab badge when filters change
+      updateTabBadge('contracts', count);
+    },
+    onRowClick: (contract) => {
+      // Optional: Show contract details in side panel
+      // showContractDetail(contract);
+    }
+  });
 }
 
 /**
@@ -313,9 +318,9 @@ function setupMobileSidebars() {
 function setupSwipeToClose(sidebar, direction, onClose) {
   if (!sidebar) return;
 
-  const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
-  const VELOCITY_THRESHOLD = 0.3; // Minimum velocity for quick swipe
-  const MAX_SWIPE_DISTANCE = 200; // Max distance for visual feedback calculation
+  const SWIPE_THRESHOLD = 50;
+  const VELOCITY_THRESHOLD = 0.3;
+  const MAX_SWIPE_DISTANCE = 200;
 
   let touchStartX = 0;
   let touchStartY = 0;
@@ -323,14 +328,9 @@ function setupSwipeToClose(sidebar, direction, onClose) {
   let isSwiping = false;
   let currentDeltaX = 0;
 
-  // Get overlay for opacity feedback
   const overlay = document.getElementById('sidebarOverlay');
 
-  /**
-   * Apply visual feedback during swipe
-   */
   const applySwipeFeedback = (deltaX) => {
-    // Only apply feedback when swiping in close direction
     const isClosingDirection = (direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0);
     if (!isClosingDirection) {
       resetSwipeFeedback();
@@ -340,28 +340,17 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     const absDistance = Math.abs(deltaX);
     const progress = Math.min(absDistance / MAX_SWIPE_DISTANCE, 1);
 
-    // Disable transition during drag for smooth feedback
     sidebar.style.transition = 'none';
-
-    // Apply transform (follow finger)
-    const translateX = direction === 'left' ? deltaX : deltaX;
-    sidebar.style.transform = `translateX(${translateX}px)`;
-
-    // Apply opacity to sidebar based on swipe progress
+    sidebar.style.transform = `translateX(${deltaX}px)`;
     sidebar.style.opacity = 1 - (progress * 0.3);
 
-    // Apply opacity to overlay
     if (overlay) {
       overlay.style.transition = 'none';
       overlay.style.opacity = 1 - progress;
     }
   };
 
-  /**
-   * Reset visual feedback (snap back)
-   */
   const resetSwipeFeedback = () => {
-    // Re-enable transition for snap back
     sidebar.style.transition = '';
     sidebar.style.transform = '';
     sidebar.style.opacity = '';
@@ -373,7 +362,6 @@ function setupSwipeToClose(sidebar, direction, onClose) {
   };
 
   sidebar.addEventListener('touchstart', (e) => {
-    // Only track if sidebar is open
     if (!sidebar.classList.contains('open')) return;
 
     touchStartX = e.touches[0].clientX;
@@ -391,16 +379,12 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     const deltaX = touchX - touchStartX;
     const deltaY = touchY - touchStartY;
 
-    // Only consider horizontal swipes (more horizontal than vertical movement)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       isSwiping = true;
       currentDeltaX = deltaX;
 
-      // Check if swiping in the correct direction to close
       if ((direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0)) {
-        // Prevent scrolling while swiping
         e.preventDefault();
-        // Apply visual feedback
         applySwipeFeedback(deltaX);
       }
     }
@@ -417,17 +401,14 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     const deltaTime = Date.now() - touchStartTime;
     const velocity = Math.abs(deltaX) / deltaTime;
 
-    // Check if swipe was in the correct direction and met threshold
     const swipedCorrectDirection = (direction === 'left' && deltaX < 0) || (direction === 'right' && deltaX > 0);
     const swipedFarEnough = Math.abs(deltaX) >= SWIPE_THRESHOLD;
     const swipedFastEnough = velocity >= VELOCITY_THRESHOLD;
 
     if (isSwiping && swipedCorrectDirection && (swipedFarEnough || swipedFastEnough)) {
-      // Close the sidebar - CSS transition will animate the close
       resetSwipeFeedback();
       onClose();
     } else {
-      // Snap back with animation
       resetSwipeFeedback();
     }
 
@@ -435,7 +416,6 @@ function setupSwipeToClose(sidebar, direction, onClose) {
     currentDeltaX = 0;
   }, { passive: true });
 
-  // Handle touch cancel (e.g., phone call interrupts)
   sidebar.addEventListener('touchcancel', () => {
     resetSwipeFeedback();
     isSwiping = false;
@@ -698,16 +678,11 @@ function showError(message) {
 }
 
 /**
- * Display scan results in table
+ * Display scan results
+ * REFACTORED: Now delegates table rendering to table.js
  */
 function displayResults(results) {
   const { contracts, stats } = results;
-
-  // Store full results for secondary filtering
-  fullResults = results;
-
-  // Clear any existing secondary filters when new scan loads
-  clearSecondaryFiltersUI();
 
   // Render heatmap visualization
   if (contracts.length > 0) {
@@ -739,52 +714,14 @@ function displayResults(results) {
   // Update dashboard stats
   updateDashboardStats(contracts, stats);
 
-  // Build table body
-  const tbody = document.getElementById('resultsBody');
-  if (!tbody) return;
-
-  if (contracts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="no-results">No contracts match your filters</td></tr>';
-    return;
-  }
-
-  // Limit display for performance (pagination TODO)
-  const displayContracts = contracts.slice(0, 500);
-
-  tbody.innerHTML = displayContracts.map(c => `
-    <tr>
-      <td class="ticker">${c.underlying}</td>
-      <td class="company">${c._meta?.company || '-'}</td>
-      <td class="industry">${c._meta?.industry || '-'}</td>
-      <td class="strike">${c.strike != null ? c.strike.toFixed(2) : '-'}</td>
-      <td class="expiration">${formatDate(c.expiration)}</td>
-      <td class="dte">${c.dte != null ? c.dte : '-'}</td>
-      <td class="bid">${formatCurrency(c.bid)}</td>
-      <td class="ask">${formatCurrency(c.ask)}</td>
-      <td class="last">${formatCurrency(c.last)}</td>
-      <td class="iv">${formatPercent(c.iv)}</td>
-      <td class="delta">${c.delta != null ? c.delta.toFixed(3) : '-'}</td>
-      <td class="volume">${formatNumber(c.volume)}</td>
-      <td class="oi">${formatNumber(c.openInterest)}</td>
-    </tr>
-  `).join('');
-
-  // Show truncation warning if needed
-  if (contracts.length > 500) {
-    const warning = document.createElement('tr');
-    warning.innerHTML = `<td colspan="13" class="truncated">Showing first 500 of ${contracts.length} results</td>`;
-    tbody.appendChild(warning);
-  }
-
-  // Update results info
-  const resultsShowing = document.getElementById('resultsShowing');
-  if (resultsShowing) {
-    if (contracts.length > 500) {
-      resultsShowing.textContent = `Showing 500 of ${contracts.length} results`;
-    } else {
-      resultsShowing.textContent = `Showing ${contracts.length} results`;
-    }
-  }
+  // =========================================================================
+  // REFACTORED: Delegate table rendering to table.js module
+  // =========================================================================
+  renderTable(contracts, {
+    sortBy: results.params?.sortBy || 'last',
+    sortDir: results.params?.sortDir || 'asc',
+    clearFilters: true  // Clear secondary filters on new scan
+  });
 }
 
 /**
@@ -844,403 +781,6 @@ function updateDashboardStats(contracts, stats) {
   if (deepITMCount) {
     const count = contracts.filter(c => c.delta != null && c.delta > 0.7).length;
     deepITMCount.textContent = formatNumber(count);
-  }
-}
-
-// =============================================================================
-// Secondary Filter Functions (Post-Scan Filtering)
-// =============================================================================
-
-/**
- * Get current secondary filter values from the UI
- */
-function getSecondaryFilterValues() {
-  const getValue = (id) => {
-    const el = document.getElementById(id);
-    if (!el) return null;
-    const val = el.value.trim();
-    return val === '' ? null : val;
-  };
-
-  const getNumValue = (id) => {
-    const val = getValue(id);
-    if (val === null) return null;
-    const num = parseFloat(val);
-    return isNaN(num) ? null : num;
-  };
-
-  return {
-    ticker: getValue('filterTicker'),
-    company: getValue('filterCompany'),
-    strikeMin: getNumValue('filterStrikeMin'),
-    strikeMax: getNumValue('filterStrikeMax'),
-    dteMin: getNumValue('filterDTEMin'),
-    dteMax: getNumValue('filterDTEMax'),
-    ivMin: getNumValue('filterIVMin'),
-    ivMax: getNumValue('filterIVMax'),
-    bidMin: getNumValue('filterBidMin'),
-    bidMax: getNumValue('filterBidMax'),
-    deltaMin: getNumValue('filterDeltaMin'),
-    deltaMax: getNumValue('filterDeltaMax'),
-    volumeMin: getNumValue('filterVolumeMin'),
-    oiMin: getNumValue('filterOIMin')
-  };
-}
-
-/**
- * Apply secondary filters to the full results
- */
-function applySecondaryFilters(contracts, filters) {
-  return contracts.filter(c => {
-    // Text filters (case-insensitive includes)
-    if (filters.ticker && !c.underlying?.toLowerCase().includes(filters.ticker.toLowerCase())) {
-      return false;
-    }
-    if (filters.company && !c._meta?.company?.toLowerCase().includes(filters.company.toLowerCase())) {
-      return false;
-    }
-
-    // Range filters
-    if (filters.strikeMin != null && (c.strike == null || c.strike < filters.strikeMin)) {
-      return false;
-    }
-    if (filters.strikeMax != null && (c.strike == null || c.strike > filters.strikeMax)) {
-      return false;
-    }
-
-    if (filters.dteMin != null && (c.dte == null || c.dte < filters.dteMin)) {
-      return false;
-    }
-    if (filters.dteMax != null && (c.dte == null || c.dte > filters.dteMax)) {
-      return false;
-    }
-
-    // IV filters (convert from percentage input to decimal)
-    if (filters.ivMin != null && (c.iv == null || c.iv * 100 < filters.ivMin)) {
-      return false;
-    }
-    if (filters.ivMax != null && (c.iv == null || c.iv * 100 > filters.ivMax)) {
-      return false;
-    }
-
-    if (filters.bidMin != null && (c.bid == null || c.bid < filters.bidMin)) {
-      return false;
-    }
-    if (filters.bidMax != null && (c.bid == null || c.bid > filters.bidMax)) {
-      return false;
-    }
-
-    if (filters.deltaMin != null && (c.delta == null || Math.abs(c.delta) < filters.deltaMin)) {
-      return false;
-    }
-    if (filters.deltaMax != null && (c.delta == null || Math.abs(c.delta) > filters.deltaMax)) {
-      return false;
-    }
-
-    // Min-only filters
-    if (filters.volumeMin != null && (c.volume == null || c.volume < filters.volumeMin)) {
-      return false;
-    }
-    if (filters.oiMin != null && (c.openInterest == null || c.openInterest < filters.oiMin)) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
-/**
- * Handle secondary filter changes with debounce
- */
-function onSecondaryFilterChange() {
-  // Clear any existing debounce timer
-  if (secondaryFilterDebounceTimer) {
-    clearTimeout(secondaryFilterDebounceTimer);
-  }
-
-  // Debounce the filter application
-  secondaryFilterDebounceTimer = setTimeout(() => {
-    applyAndDisplaySecondaryFilters();
-  }, 300);
-}
-
-/**
- * Apply secondary filters and update the display
- */
-function applyAndDisplaySecondaryFilters() {
-  if (!fullResults || !fullResults.contracts) return;
-
-  const filters = getSecondaryFilterValues();
-  const filteredContracts = applySecondaryFilters(fullResults.contracts, filters);
-
-  // Create a new results object with filtered contracts
-  const filteredResults = {
-    ...fullResults,
-    contracts: filteredContracts
-  };
-
-  // Update the display
-  displayFilteredResults(filteredResults, fullResults.contracts.length);
-
-  // Update active filter count badge
-  updateActiveFilterCount();
-}
-
-/**
- * Display filtered results (similar to displayResults but shows filter count)
- */
-function displayFilteredResults(results, totalCount) {
-  const { contracts, stats } = results;
-
-  // Update tab badge with filtered contract count
-  updateTabBadge('contracts', contracts.length);
-
-  // Build table body
-  const tbody = document.getElementById('resultsBody');
-  if (!tbody) return;
-
-  if (contracts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="no-results">No contracts match your filters</td></tr>';
-    updateResultsInfo(0, totalCount);
-    return;
-  }
-
-  // Limit display for performance
-  const displayContracts = contracts.slice(0, 500);
-
-  tbody.innerHTML = displayContracts.map(c => `
-    <tr>
-      <td class="ticker">${c.underlying}</td>
-      <td class="company">${c._meta?.company || '-'}</td>
-      <td class="industry">${c._meta?.industry || '-'}</td>
-      <td class="strike">${c.strike != null ? c.strike.toFixed(2) : '-'}</td>
-      <td class="expiration">${formatDate(c.expiration)}</td>
-      <td class="dte">${c.dte != null ? c.dte : '-'}</td>
-      <td class="bid">${formatCurrency(c.bid)}</td>
-      <td class="ask">${formatCurrency(c.ask)}</td>
-      <td class="last">${formatCurrency(c.last)}</td>
-      <td class="iv">${formatPercent(c.iv)}</td>
-      <td class="delta">${c.delta != null ? c.delta.toFixed(3) : '-'}</td>
-      <td class="volume">${formatNumber(c.volume)}</td>
-      <td class="oi">${formatNumber(c.openInterest)}</td>
-    </tr>
-  `).join('');
-
-  // Show truncation warning if needed
-  if (contracts.length > 500) {
-    const warning = document.createElement('tr');
-    warning.innerHTML = `<td colspan="13" class="truncated">Showing first 500 of ${contracts.length} filtered results</td>`;
-    tbody.appendChild(warning);
-  }
-
-  // Update results info with filter count
-  updateResultsInfo(contracts.length, totalCount);
-}
-
-/**
- * Update results info text
- */
-function updateResultsInfo(filteredCount, totalCount) {
-  const resultsShowing = document.getElementById('resultsShowing');
-  if (resultsShowing) {
-    if (filteredCount === totalCount) {
-      if (totalCount > 500) {
-        resultsShowing.textContent = `Showing 500 of ${totalCount} results`;
-      } else {
-        resultsShowing.textContent = `Showing ${totalCount} results`;
-      }
-    } else {
-      if (filteredCount > 500) {
-        resultsShowing.textContent = `Showing 500 of ${filteredCount} filtered (${totalCount} total)`;
-      } else {
-        resultsShowing.textContent = `Showing ${filteredCount} of ${totalCount} results`;
-      }
-    }
-  }
-}
-
-/**
- * Clear secondary filter UI elements (without triggering re-filter)
- */
-function clearSecondaryFiltersUI() {
-  // Clear text inputs
-  const textInputs = ['filterTicker', 'filterCompany'];
-  textInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-
-  // Clear number inputs
-  const numInputs = [
-    'filterStrikeMin', 'filterStrikeMax',
-    'filterDTEMin', 'filterDTEMax',
-    'filterIVMin', 'filterIVMax',
-    'filterBidMin', 'filterBidMax',
-    'filterDeltaMin', 'filterDeltaMax',
-    'filterVolumeMin', 'filterOIMin'
-  ];
-  numInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-}
-
-/**
- * Clear all secondary filters and re-apply
- */
-function clearSecondaryFilters() {
-  clearSecondaryFiltersUI();
-  // Re-apply filters (which will now show all results)
-  applyAndDisplaySecondaryFilters();
-}
-
-/**
- * Set up event listeners for secondary filters
- */
-function setupSecondaryFilters() {
-  // Text inputs
-  const textInputs = ['filterTicker', 'filterCompany'];
-  textInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', onSecondaryFilterChange);
-    }
-  });
-
-  // Number inputs
-  const numInputs = [
-    'filterStrikeMin', 'filterStrikeMax',
-    'filterDTEMin', 'filterDTEMax',
-    'filterIVMin', 'filterIVMax',
-    'filterBidMin', 'filterBidMax',
-    'filterDeltaMin', 'filterDeltaMax',
-    'filterVolumeMin', 'filterOIMin'
-  ];
-  numInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', onSecondaryFilterChange);
-    }
-  });
-
-  // Clear filters button
-  const clearBtn = document.getElementById('clearSecondaryFilters');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', clearSecondaryFilters);
-  }
-
-  // Toggle collapse/expand
-  const toggleBtn = document.getElementById('toggleSecondaryFilters');
-  const filtersContainer = document.getElementById('secondaryFilters');
-  if (toggleBtn && filtersContainer) {
-    toggleBtn.addEventListener('click', () => {
-      filtersContainer.classList.toggle('collapsed');
-    });
-  }
-}
-
-/**
- * Update active filter count badge
- */
-function updateActiveFilterCount() {
-  const filters = getSecondaryFilterValues();
-  let count = 0;
-
-  // Count active text filters
-  if (filters.ticker) count++;
-  if (filters.company) count++;
-
-  // Count active range filters
-  if (filters.strikeMin != null || filters.strikeMax != null) count++;
-  if (filters.dteMin != null || filters.dteMax != null) count++;
-  if (filters.ivMin != null || filters.ivMax != null) count++;
-  if (filters.bidMin != null || filters.bidMax != null) count++;
-  if (filters.deltaMin != null || filters.deltaMax != null) count++;
-  if (filters.volumeMin != null) count++;
-  if (filters.oiMin != null) count++;
-
-  // Update badge
-  const badge = document.getElementById('filterActiveCount');
-  if (badge) {
-    if (count > 0) {
-      badge.textContent = `${count} active`;
-      badge.classList.add('visible');
-    } else {
-      badge.classList.remove('visible');
-    }
-  }
-}
-
-/**
- * Sort results by field
- */
-function sortResults(field) {
-  if (!fullResults || !fullResults.contracts) return;
-
-  // Determine sort direction (toggle if same field)
-  const currentSort = fullResults.params?.sortBy;
-  const currentDir = fullResults.params?.sortDir || 'asc';
-
-  let newDir = 'asc';
-  if (field === currentSort) {
-    newDir = currentDir === 'asc' ? 'desc' : 'asc';
-  }
-
-  // Helper to get nested field value (e.g., "_meta.company")
-  const getFieldValue = (obj, fieldPath) => {
-    return fieldPath.split('.').reduce((o, k) => o?.[k], obj);
-  };
-
-  // Sort fullResults
-  fullResults.contracts.sort((a, b) => {
-    let aVal = getFieldValue(a, field);
-    let bVal = getFieldValue(b, field);
-
-    if (aVal == null && bVal == null) return 0;
-    if (aVal == null) return 1;
-    if (bVal == null) return -1;
-
-    // String comparison for text fields
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      const cmp = aVal.localeCompare(bVal);
-      return newDir === 'asc' ? cmp : -cmp;
-    }
-
-    if (newDir === 'asc') {
-      return aVal - bVal;
-    } else {
-      return bVal - aVal;
-    }
-  });
-
-  // Update params
-  if (!fullResults.params) fullResults.params = {};
-  fullResults.params.sortBy = field;
-  fullResults.params.sortDir = newDir;
-
-  // Also update currentResults reference
-  currentResults = fullResults;
-
-  // Re-apply secondary filters and display
-  applyAndDisplaySecondaryFilters();
-
-  // Update header indicators
-  updateSortIndicators(field, newDir);
-}
-
-/**
- * Update sort indicators in table headers
- */
-function updateSortIndicators(field, dir) {
-  // Remove all indicators
-  document.querySelectorAll('.sortable').forEach(el => {
-    el.classList.remove('sort-asc', 'sort-desc');
-  });
-  
-  // Add indicator to current
-  const header = document.querySelector(`.sortable[data-field="${field}"]`);
-  if (header) {
-    header.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
   }
 }
 
@@ -1345,7 +885,7 @@ function setupScanPickerModal() {
     });
   }
 
-  // Event delegation for scan list items (prevents memory leak)
+  // Event delegation for scan list items
   if (listEl) {
     listEl.addEventListener('click', async (e) => {
       const loadBtn = e.target.closest('.scan-picker-load');
@@ -1385,7 +925,7 @@ function setupScanPickerModal() {
  */
 async function tryLoadFromCache() {
   if (!cacheManager.isAvailable) return;
-  if (forceRefresh) return; // Skip cache when force refresh requested
+  if (forceRefresh) return;
 
   const latestScan = await cacheManager.getLatestScan();
   if (!latestScan) return;
@@ -1483,7 +1023,6 @@ async function openScanPicker() {
         </div>
       </div>
     `).join('');
-    // Event listeners handled via delegation in setupScanPickerModal()
   }
 
   // Open modal
@@ -1520,7 +1059,7 @@ function showToast(message, type = 'info') {
 
   if (!toast || !messageEl) return;
 
-  // Clear any existing timeout to prevent early hide
+  // Clear any existing timeout
   if (toastTimeout) {
     clearTimeout(toastTimeout);
   }
@@ -1583,54 +1122,10 @@ function formatBytes(bytes) {
 
 /**
  * Export results to CSV
+ * REFACTORED: Now delegates to table.js
  */
 export function exportCSV() {
-  if (!currentResults || !currentResults.contracts) {
-    alert('No results to export');
-    return;
-  }
-  
-  const headers = [
-    'Ticker', 'Industry', 'Strike', 'Expiration', 'DTE',
-    'Bid', 'Ask', 'Last', 'IV', 'Delta', 'Volume', 'Open Interest',
-    'Underlying Price', 'Contract'
-  ];
-  
-  const rows = currentResults.contracts.map(c => [
-    c.underlying,
-    c._meta.industry || '',
-    c.strike,
-    c.expiration,
-    c.dte,
-    c.bid,
-    c.ask,
-    c.last,
-    c.iv,
-    c.delta,
-    c.volume,
-    c.openInterest,
-    c.underlyingPrice,
-    c.contractTicker
-  ]);
-  
-  const csv = [headers, ...rows]
-    .map(row => row.map(cell => {
-      if (cell == null) return '';
-      if (typeof cell === 'string' && cell.includes(',')) {
-        return `"${cell}"`;
-      }
-      return cell;
-    }).join(','))
-    .join('\n');
-  
-  // Download
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `options-scan-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  exportTableToCSV();
 }
 
 // Make functions available globally for HTML onclick handlers
