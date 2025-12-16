@@ -116,6 +116,111 @@ function formatCell(value, format) {
 }
 
 // =============================================================================
+// Conditional Coloring
+// =============================================================================
+
+/**
+ * Color thresholds for opportunity detection
+ * - 'positive' class = opportunity/good (teal)
+ * - 'neutral' class = neutral (default)
+ * - 'negative' class = caution/expensive (red)
+ */
+const COLOR_THRESHOLDS = {
+  iv: {
+    low: 0.25,    // < 25% IV = cheap volatility (opportunity)
+    high: 0.50    // > 50% IV = expensive
+  },
+  delta: {
+    low: 0.20,    // < 0.20 = far OTM
+    high: 0.50    // > 0.50 = ITM
+  },
+  dte: {
+    low: 30,      // < 30 days = short-term (urgent)
+    high: 90      // > 90 days = LEAPS (time)
+  },
+  price: {
+    low: 0.50,    // < $0.50 = cheap
+    high: 2.00    // > $2.00 = expensive
+  }
+};
+
+/**
+ * Get color class for IV value
+ * Low IV = opportunity (green), High IV = expensive (red)
+ * @param {number} iv - IV as decimal (0.25 = 25%)
+ * @returns {string} CSS class
+ */
+function getIvColorClass(iv) {
+  if (iv == null) return '';
+  if (iv < COLOR_THRESHOLDS.iv.low) return 'cell-positive';  // Low IV = opportunity
+  if (iv > COLOR_THRESHOLDS.iv.high) return 'cell-negative'; // High IV = expensive
+  return 'cell-neutral';
+}
+
+/**
+ * Get color class for Delta value
+ * Uses absolute delta - shows proximity to ATM
+ * @param {number} delta - Delta value
+ * @returns {string} CSS class
+ */
+function getDeltaColorClass(delta) {
+  if (delta == null) return '';
+  const absDelta = Math.abs(delta);
+  if (absDelta < COLOR_THRESHOLDS.delta.low) return 'cell-muted';    // Far OTM
+  if (absDelta > COLOR_THRESHOLDS.delta.high) return 'cell-accent';  // ITM
+  return 'cell-neutral';
+}
+
+/**
+ * Get color class for DTE value
+ * Short DTE = urgent (warm), Long DTE = time (cool)
+ * @param {number} dte - Days to expiration
+ * @returns {string} CSS class
+ */
+function getDteColorClass(dte) {
+  if (dte == null) return '';
+  if (dte < COLOR_THRESHOLDS.dte.low) return 'cell-warning';   // Short-term, urgent
+  if (dte > COLOR_THRESHOLDS.dte.high) return 'cell-cool';     // LEAPS, plenty of time
+  return 'cell-neutral';
+}
+
+/**
+ * Get color class for price (last/bid/ask)
+ * Cheap = opportunity, Expensive = caution
+ * @param {number} price - Option price
+ * @returns {string} CSS class
+ */
+function getPriceColorClass(price) {
+  if (price == null || price === 0) return '';
+  if (price < COLOR_THRESHOLDS.price.low) return 'cell-positive';  // Cheap
+  if (price > COLOR_THRESHOLDS.price.high) return 'cell-negative'; // Expensive
+  return 'cell-neutral';
+}
+
+/**
+ * Get the appropriate color class for a cell based on column and value
+ * @param {string} columnKey - Column key from COLUMN_DEFS
+ * @param {any} value - Cell value
+ * @returns {string} CSS class for coloring
+ */
+function getCellColorClass(columnKey, value) {
+  switch (columnKey) {
+    case 'iv':
+      return getIvColorClass(value);
+    case 'delta':
+      return getDeltaColorClass(value);
+    case 'dte':
+      return getDteColorClass(value);
+    case 'last':
+    case 'bid':
+    case 'ask':
+      return getPriceColorClass(value);
+    default:
+      return '';
+  }
+}
+
+// =============================================================================
 // Sorting
 // =============================================================================
 
@@ -304,7 +409,9 @@ function buildRow(contract) {
   const cells = COLUMN_DEFS.map(col => {
     const value = getFieldValue(contract, col.key);
     const formatted = formatCell(value, col.format);
-    return `<td class="${col.className}">${formatted}</td>`;
+    const colorClass = getCellColorClass(col.key, value);
+    const classes = [col.className, colorClass].filter(Boolean).join(' ');
+    return `<td class="${classes}">${formatted}</td>`;
   }).join('');
   
   return `<tr data-ticker="${contract.contractTicker || ''}">${cells}</tr>`;
@@ -668,4 +775,4 @@ export function resetTable() {
 // Export column defs for external use (e.g., dynamic table generation)
 // =============================================================================
 
-export { COLUMN_DEFS, CONFIG as TABLE_CONFIG };
+export { COLUMN_DEFS, CONFIG as TABLE_CONFIG, COLOR_THRESHOLDS };

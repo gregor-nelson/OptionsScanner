@@ -1,0 +1,230 @@
+/**
+ * Table Conditional Coloring
+ * Color-codes cells based on value ranges for quick opportunity scanning
+ */
+
+/* =============================================================================
+   Base Cell Styling
+   ============================================================================= */
+
+/* Ensure cells have consistent styling for colored text */
+#resultsTable td {
+  transition: background-color 0.15s ease;
+}
+
+/* =============================================================================
+   Conditional Color Classes
+   ============================================================================= */
+
+/* Positive / Opportunity (teal/green) - Low IV, Cheap price */
+.cell-positive {
+  color: #00d4aa;
+  font-weight: 500;
+}
+
+/* Negative / Caution (red/orange) - High IV, Expensive */
+.cell-negative {
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+/* Neutral - Mid-range values */
+.cell-neutral {
+  color: #8b9eb3;
+}
+
+/* Muted - Far OTM delta, less relevant */
+.cell-muted {
+  color: #5a6b7d;
+}
+
+/* Accent - ITM delta, high conviction */
+.cell-accent {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* Warning - Short DTE, time-sensitive */
+.cell-warning {
+  color: #ffa502;
+  font-weight: 500;
+}
+
+/* Cool - Long DTE / LEAPS, plenty of time */
+.cell-cool {
+  color: #06b6d4;
+}
+
+/* =============================================================================
+   Enhanced Row Styling
+   ============================================================================= */
+
+/* Zebra striping for better row tracking */
+#resultsTable tbody tr:nth-child(even) {
+  background-color: rgba(42, 53, 68, 0.3);
+}
+
+#resultsTable tbody tr:nth-child(odd) {
+  background-color: transparent;
+}
+
+/* Enhanced hover state */
+#resultsTable tbody tr:hover {
+  background-color: rgba(0, 212, 170, 0.08);
+}
+
+#resultsTable tbody tr:hover td {
+  color: #e6edf5;
+}
+
+/* Keep colored cells visible on hover */
+#resultsTable tbody tr:hover .cell-positive {
+  color: #00ffcc;
+}
+
+#resultsTable tbody tr:hover .cell-negative {
+  color: #ff8585;
+}
+
+#resultsTable tbody tr:hover .cell-warning {
+  color: #ffb833;
+}
+
+#resultsTable tbody tr:hover .cell-accent {
+  color: #60a5fa;
+}
+
+#resultsTable tbody tr:hover .cell-cool {
+  color: #22d3ee;
+}
+
+/* =============================================================================
+   Sticky Header
+   ============================================================================= */
+
+#resultsTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #121820;
+}
+
+#resultsTable thead th {
+  background-color: #1a222d;
+  border-bottom: 1px solid #2a3544;
+}
+
+/* =============================================================================
+   Visual Legend (optional - can be shown in UI)
+   ============================================================================= */
+
+.table-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(26, 34, 45, 0.6);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+.table-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.table-legend-dot.positive { background-color: #00d4aa; }
+.table-legend-dot.negative { background-color: #ff6b6b; }
+.table-legend-dot.warning { background-color: #ffa502; }
+.table-legend-dot.accent { background-color: #3b82f6; }
+.table-legend-dot.cool { background-color: #06b6d4; }
+.table-legend-dot.muted { background-color: #5a6b7d; }
+
+.table-legend-label {
+  color: #8b9eb3;
+}
+
+/* =============================================================================
+   Column-Specific Enhancements
+   ============================================================================= */
+
+/* Make ticker column stand out */
+#resultsTable td.ticker {
+  font-weight: 600;
+  color: #e6edf5;
+}
+
+/* Monospace for numeric columns */
+#resultsTable td.strike,
+#resultsTable td.bid,
+#resultsTable td.ask,
+#resultsTable td.last,
+#resultsTable td.iv,
+#resultsTable td.delta,
+#resultsTable td.volume,
+#resultsTable td.oi,
+#resultsTable td.dte {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+
+/* Right-align numeric columns (ensure consistency) */
+#resultsTable td.strike,
+#resultsTable td.bid,
+#resultsTable td.ask,
+#resultsTable td.last,
+#resultsTable td.iv,
+#resultsTable td.delta,
+#resultsTable td.volume,
+#resultsTable td.oi,
+#resultsTable td.dte {
+  text-align: right;
+}
+
+/* =============================================================================
+   Active Sort Column Highlight
+   ============================================================================= */
+
+#resultsTable th.sort-asc,
+#resultsTable th.sort-desc {
+  background-color: rgba(0, 212, 170, 0.1);
+}
+
+/* =============================================================================
+   Mobile Responsiveness
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .table-legend {
+    gap: 10px;
+    padding: 6px 10px;
+  }
+  
+  .table-legend-item {
+    font-size: 10px;
+  }
+  
+  #resultsTable td.ticker {
+    font-size: 12px;
+  }
+  
+  #resultsTable td.strike,
+  #resultsTable td.bid,
+  #resultsTable td.ask,
+  #resultsTable td.last,
+  #resultsTable td.iv,
+  #resultsTable td.delta,
+  #resultsTable td.volume,
+  #resultsTable td.oi,
+  #resultsTable td.dte {
+    font-size: 11px;
+  }
+}
